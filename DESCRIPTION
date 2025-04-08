@@ -35,7 +35,10 @@ URL: https://github.com/ccamara/OSMdashboard
 BugReports: https://github.com/ccamara/OSMdashboard/issues
 Imports: 
     dplyr,
+    lubridate,
     osmapiR,
+    rvest,
+    stringr,
     tidyr
 Suggests: 
     sf
