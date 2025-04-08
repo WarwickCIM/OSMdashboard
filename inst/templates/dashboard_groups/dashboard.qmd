@@ -1,0 +1,765 @@
+---
+title: "Group contributions to OSM"
+format: 
+  dashboard:
+    # orientation: columns
+    orientation: rows
+    # scrolling: true
+    self-contained: true
+---
+
+```{r setup}
+#| echo: false
+#| warning: false
+#| output: false
+
+# Uncomment to update datasets.
+# source(file = "R/data_retrieval.R")
+
+library(dplyr)
+library(ggplot2)
+library(forcats)
+library(knitr)
+library(leaflet)
+library(leaflet.extras)
+library(lubridate)
+library(plotly)
+library(reactable)
+library(readr)
+library(sf)
+library(stringr)
+library(tidyr)
+library(treemapify)
+
+files.sources = list.files("R/", full.names = TRUE)
+sapply(files.sources, source)
+
+
+
+
+
+
+# GGplot configs ---------------------------------------------------------------------------
+
+# theme_set(
+#   theme_minimal(
+#     base_size = 14) +
+#   theme(
+#     plot.title = element_text(face = "bold"),
+#     plot.title.position = "plot",
+#     legend.position = "top"
+#   )
+# )
+
+```
+
+```{r data-map contributions}
+changesets <- read_csv("data/changesets.csv") |> 
+  mutate(user = as.factor(user))
+
+
+changesets_sf <- sf::read_sf("data/changesets.gpkg")
+  # Uncomment to check if geometry is valid
+  # st_is_valid(changesets_sf_centroids, reason = TRUE) 
+
+changesets_sf_repaired<- changesets_sf |> 
+  # Some 
+  st_make_valid() 
+
+changesets_sf_repaired$area_meters <- st_area(changesets_sf_repaired)
+changesets$area_meters <- st_area(changesets_sf_repaired)
+
+# changesets2 <- changesets_sf_repaired |> 
+#   as_tibble() |> 
+#   select(id, area_meters) |> 
+#   # mutate(area = as.numeric(area_meters)) |> 
+#   right_join(changesets)
+
+
+changesets_sf_centroids <- changesets_sf_repaired |> 
+  # Some 
+  st_centroid() %>% # Need to use pipe operator to make the below work.
+  mutate(lon = sf::st_coordinates(.)[,1],
+         lat = sf::st_coordinates(.)[,2])
+
+changesets_details <- read_csv("data/changesets_details.csv")
+changesets_tags <- read_csv("data/changesets_tags.csv")
+
+n_users <- nlevels(changesets$user)
+
+date_start <- dmy(format(min(date(changesets$created_at)), "%d/%m/%Y"))
+date_end <- dmy(format(max(date(changesets$created_at)), "%d/%m/%Y"))
+
+n_days <- as.numeric(difftime(date_end, date_start, units = "days"))
+
+contributions_n_changesets <- nrow(changesets)
+
+
+```
+
+```{r data-wiki-contrib}
+
+wiki_contributions <- read.csv("data/wiki_contributions.csv")
+
+wiki_contributions_stats <- calc_stats_contributions_wiki(wiki_contributions)
+
+wiki_contributions_n <- wiki_contributions |> 
+  count(user, name = "wiki_edits") |> 
+  mutate(user = tolower(user))
+
+```
+
+
+```{r data-other}
+
+osm_user_details <- read.csv("data/osm_user_details.csv")
+
+# TODO: to be replaced by loading a dataset generated from data_retrieval.
+contributions_summary <- osm_user_details |> 
+  mutate(user = tolower(user),
+         account_age = as.integer(difftime(today(), date_creation, units="days"))/365 ) |> 
+  left_join(wiki_contributions_n, by = "user") 
+
+contributions_type <- contributions_summary |> 
+  select(-starts_with("date"), -account_age) |> 
+  pivot_longer(-user) |> 
+  count(name, wt = value)
+
+
+
+```
+
+
+
+# Overview
+
+## Tilr and description
+
+::: {.card .flow}
+
+## Group name (e.g. Geochicas)
+
+An explanation of the group, e.g. when was created, what's their aim...
+
+This group has contributed `r nrow(changesets)` between `r date_start` and `r date_end`.
+
+:::
+
+
+## Value boxes
+
+```{r}
+#| content: valuebox
+#| title: "# users"
+#| icon: people
+#| color: primary
+nrow(contributions_summary)
+```
+
+```{r}
+#| content: valuebox
+#| title: "Mean account age (years)"
+#| icon: hourglass-split
+#| color: primary
+round(mean(contributions_summary$account_age), digits = 2)
+```
+
+```{r}
+#| content: valuebox
+#| title: "# users with changesets"
+#| icon: map
+#| color: primary
+contributions_summary |> 
+  filter(map_changesets > 0) |> 
+  nrow()
+```
+
+```{r}
+#| content: valuebox
+#| title: "# users with diary notes"
+#| icon: calendar
+#| color: primary
+contributions_summary |> 
+  filter(diary > 0) |> 
+  nrow()
+```
+
+```{r}
+#| content: valuebox
+#| title: "# users with wiki edits"
+#| icon: wikipedia
+#| color: primary
+contributions_summary |> 
+  filter(wiki_edits > 0) |> 
+  nrow()
+```
+
+Hours spent contributing
+
+## Some summaries
+
+
+```{r}
+#| title: "User stats"
+
+contributions_summary |> 
+  select(-starts_with("date")) |> 
+  pivot_longer(-user) |> 
+  ggplot(aes(x = value, y = 1, fill = name)) +
+  geom_boxplot() +
+  facet_wrap(~name, ncol=1, scales = "free_x")+ 
+  labs(y = "", x ="") +
+  # theme_minimal() +
+  theme(
+    axis.title.y=element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.y = element_blank(),
+    panel.grid= element_blank()
+  )
+```
+
+
+### Contributions distribution {.tabset}
+
+```{r}
+#| title: "Contributions per type"
+
+contributions_type |> 
+  plot_ly(labels = ~name, values = ~n) |> 
+  add_pie(hole = 0.6)
+
+
+
+
+```
+
+
+```{r}
+#| title: "Contributions per hour"
+
+print("Pie chart showing total time spent in contributions per type.")
+```
+
+# Changesets {icon="fa-utensils"}
+
+## Valueboxes
+
+```{r}
+#| content: valuebox
+#| title: "# users with changesets"
+#| icon: map
+#| color: primary
+contributions_summary |> 
+  filter(map_changesets > 0) |> 
+  nrow()
+```
+
+```{r}
+#| content: valuebox
+#| title: "# changesets"
+#| icon: pencil
+#| color: secondary
+contributions_n_changesets
+```
+
+```{r}
+#| content: valuebox
+#| title: "changesets/day"
+#| icon: pencil-fill
+round(nrow(changesets)/n_days, digits = 2)
+```
+
+<!-- Create a boxplot that shows on the x axis number of changesets, on the Y axis number of features per changeset, and the size of the dot can be the area of the changeset. Do this for every member of the group. -->
+
+
+## Map of contributions { height="300"}
+
+```{r}
+#| title: Where do they contribute?
+#| padding: 0px
+leaflet(options = leafletOptions(maxZoom = 12)) |> 
+  addTiles() |>   # Add default OpenStreetMap map tiles
+  addProviderTiles(providers$CartoDB.Positron) |> 
+  # addProviderTiles(providers$Esri.WorldStreetMap) |> 
+  addMiniMap() |> 
+  # addPolygons(data = changesets_sf) |> 
+  # addCircles(data = changesets_sf_centroids)
+  addHeatmap(data = filter(changesets_sf_centroids, !is.na(lon)), lng = ~lon, lat = ~lat,
+           blur = 10, radius = 20, minOpacity = 0.5 ) 
+```
+
+
+```{r}
+#| title: When do they contribute?
+
+changesets_day_time <- changesets |> 
+  select(created_at) |> 
+  mutate(date = created_at,
+         weekday = weekdays(date),
+         weekday = forcats::fct_relevel(
+           as.factor(weekday), 
+           "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"),
+         time = hms::as_hms(date),
+         hour = hour(time)) |> 
+  count(weekday, hour) |> 
+  # Converting to wide to generate NAs
+  pivot_wider(names_from = hour, values_from = n) |>
+  pivot_longer(-weekday, names_to = "hour", values_to = "n") |> 
+  mutate(hour = as.numeric(hour)) 
+  # mutate(n = replace_na(n, 0))
+
+heatmap <- ggplot(changesets_day_time, aes(hour, weekday, fill= n)) + 
+  geom_tile(show.legend = FALSE) +
+  labs(y = NULL) + 
+  scale_fill_distiller(palette = "Greens", direction = 1) +
+  # scale_x_continuous(position = "top")  + # Does not work with plotly!
+  theme_minimal() 
+  # theme(panel.background = element_rect(fill = 'lightgrey'),
+  #       # panel.grid.minor = element_line(color = 'white', size = 2)
+  #       )
+
+heatmap_interactive <- ggplotly(heatmap)
+
+heatmap_interactive
+
+```
+
+
+### {.tabset}
+```{r}
+#| title: "Changesets and size"
+p <- changesets |> 
+  count(changes_count, sort = TRUE) |> 
+  ggplot(aes(x = changes_count, y = n)) +
+  geom_point() +
+  scale_x_log10() +
+  scale_y_log10() + 
+  labs(x = "Number of features in changeset",
+       y = "Number of changesets") + 
+  theme_minimal()
+
+ggplotly(p)
+
+```
+
+
+```{r}
+changesets_details |> 
+  count(changeset, name = "n_features") |>
+  mutate(changeset = as.numeric(changeset)) |> 
+  right_join(changesets, by = join_by(changeset == id)) |> 
+  select(changeset, n_features, area_meters) |> 
+  mutate(area_hectare = area_meters * 0.0001,
+         area_hectare = as.numeric(area_hectare)) |> 
+  select(n_features, area_hectare) |> 
+  pivot_longer(c(n_features, area_hectare)) |> 
+  ggplot(aes(x = value, y = 1, fill = name)) +
+  geom_boxplot() +
+  facet_wrap(~name, ncol=1, scales = "free_x")+ 
+  labs(y = "", x ="") +
+  # theme_minimal() +
+  theme(
+    axis.title.y=element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.y = element_blank(),
+    panel.grid= element_blank()
+  ) 
+
+
+
+```
+
+## Row
+
+### What {.tabset}
+
+```{r}
+#| title: "Most Used keys"
+key_counts <- changesets_tags  |>
+  count(key, sort = TRUE) |> 
+  get_key_classification() |> 
+  mutate(parent_key = replace_na(parent_key, "other"),
+         top_key = replace_na(top_key, "other"))
+
+top_keys <- levels(as.factor(key_counts$top_key))
+top_keys_n <- nlevels(as.factor(key_counts$top_key))
+
+
+tags_top_parents <- data.frame(
+  key = top_keys,
+  n = rep(0, top_keys_n),
+  top_key = rep("", top_keys_n) 
+)
+
+key_counts <- key_counts |> 
+  bind_rows(tags_top_parents) |> 
+  filter(key != "leisure")
+
+plot_ly(
+  data = key_counts,
+  type = "treemap",
+  labels = ~key,
+  values = ~n,
+  parents = ~top_key
+)
+
+```
+
+
+```{r}
+#| title: "Hashtags used"
+#| label: hashtags-count2
+# TODO: see how to reuse code.
+
+changesets |> 
+  select(id, hashtags) |> 
+  filter(!is.na(hashtags)) |> 
+  # mutate(hashtags = str_remove_all(hashtags, "#")) |> 
+  separate_longer_delim(hashtags, ";") |> 
+  count(hashtags) |> 
+  mutate(hashtags = fct_reorder(hashtags, n),
+         hashtags = fct_lump_n(hashtags, 5)) |> 
+  ggplot(aes(x = n, y = hashtags, label = n)) +
+  geom_bar(stat="identity") +
+  geom_text(color = "white", hjust = 1.2) +
+  labs(x = NULL, y = NULL) +
+  theme_minimal() +
+  theme(panel.grid= element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x = element_blank())
+```
+
+
+```{r}
+#| title: "Comments"
+library(tidytext)
+
+changesets |>
+  select(comment) |> 
+  unnest_tokens(bigram, comment, token = "ngrams", n = 2) |> 
+  separate(bigram, c("word1", "word2"), sep = " ") |> 
+  filter(!word1 %in% stop_words$word,
+         !word2 %in% stop_words$word,
+         !is.na(word1),
+         !is.na(word2)) |> 
+  mutate(bigram = paste(word1, word2)) |> 
+  count(bigram, sort = TRUE) |> 
+  head(15) |> 
+  kable()
+```
+
+```{r}
+#| title: "Most Used keys 2"
+key_counts2 <- changesets_tags  |>
+  count(key, sort = TRUE) |> 
+  get_key_classification() |> 
+  count(top_key, parent_key, wt = n) |> 
+  mutate(parent_key = replace_na(parent_key, "other"),
+         top_key = replace_na(top_key, "other"),
+         top_key = fct_infreq(as.factor(top_key))) 
+
+
+tags_treemap <- ggplot(key_counts2, aes(area = n, fill = top_key, 
+                        subgroup = top_key,
+                        label = parent_key)) +
+  geom_treemap(color = "white") +
+  geom_treemap_subgroup_border(color = "white") +
+  geom_treemap_text(fontface = "italic", colour = "white", alpha = 0.5,
+                    place = "centre",
+                    grow = TRUE) +
+  geom_treemap_subgroup_text(place = "bottom", grow = T, alpha = 1, colour =
+                               "#333333", fontface = "italic", min.size = 0) +
+  labs(fill = "") +
+  scale_fill_brewer(palette = "Paired", type = "qual", direction = 1) +
+  # TODO: sort sorting for scale fill. Now based on factor's levels.
+  theme(legend.position="none")
+
+tags_treemap
+
+```
+
+
+### How {.tabset}
+
+
+```{r}
+#| title: "Sources of information"
+
+df <- changesets |> 
+  select(imagery_used, source) |> 
+  mutate(
+    source = case_when(
+      is.na(source) & !is.na(imagery_used) ~ imagery_used,
+      .default = source)) |>
+  filter(!is.na(source)) |> 
+  separate_wider_delim(source, delim = ";", names_sep = "_", too_few = "align_start", cols_remove = TRUE) |> 
+  select(starts_with("source_")) |> 
+  pivot_longer(everything()) |> 
+  select(value) |> 
+  rename(source = value) |> 
+  filter(!is.na(source)) |> 
+  mutate(source = str_trim(source),
+         source = str_replace_all(source, "\\+", " "),
+         source = case_when(
+           tolower(source) == "survey" ~ "Survey",
+           str_detect(tolower(source), "mapillary") ~ "Mapillary",
+           str_detect(tolower(source), "esri")   ~ "Esri World Imagery",
+           str_detect(source, "Bing") ~ "Bing Maps Aerial",
+           str_detect(source, "PNOA") ~ "PNOA Spain",
+           str_detect(source, "Maxar") ~ "Maxar Premium Imagery",
+           str_detect(source, "Catastro") ~ "Catastro Spain",
+           str_detect(source, "Strava") ~ "Strava Heat Map",
+           .default = source
+         ),
+         parent = case_when(
+           str_detect(source, "Bing") ~ "Satellite Imagery",
+           str_detect(source, "Copernicus") ~ "Satellite Imagery",
+           str_detect(source, "Esri") ~ "Satellite Imagery",
+           str_detect(tolower(source), "imagery") ~ "Satellite Imagery",
+           source %in% c("PNOA Spain") ~ "Satellite Imagery"
+         )) |> 
+  mutate(source = as.factor(source),
+         source = fct_lump_n(source, 10)) |> 
+  count(source, parent, sort = TRUE) 
+
+
+top_parents <- levels(df$parents)
+top_parents_n <- nlevels(df$parents)
+
+df_top_parents <- data.frame(
+  source = "Satellite Imagery",
+  n = 0,
+  parent = ""
+)
+
+df <- df |> 
+  bind_rows(df_top_parents) 
+
+
+plot_ly(
+  data = df,
+  type = "sunburst",
+  # branchvalues = 'total',
+  labels = ~source,
+  values = ~n,
+  parents = ~parent
+)
+
+```
+
+
+```{r}
+#| title: "Software used"
+
+changesets |> 
+  select(created_by) |> 
+  rename(software = created_by) |> 
+  mutate(software_clean = case_when(
+    str_detect(software, "iD ") ~ "iD",
+    str_detect(software, "JOSM") ~ "JOSM",
+    str_detect(software, "maps.me") ~ "maps.me",
+    str_detect(software, "MapComplete") ~ "MapComplete",
+    str_detect(software, "Organic Maps") ~ "Organic Maps",
+    str_detect(software, "RapiD") ~ "RapiD",
+    str_detect(software, "StreetComplete") ~ "StreetComplete",
+    str_detect(software, "Vespucci") ~ "Vespucci",
+    .default = "Other"
+  )) |> 
+  count(software_clean, sort = TRUE) |> 
+  mutate(software_clean = fct_reorder(software_clean, n)) |> 
+  plot_ly(labels = ~software_clean, values = ~n) |> 
+  add_pie(hole = 0.6)
+
+
+```
+
+```{r}
+#| title: "Type of changesets"
+changesets_tags |> 
+  count(action_type, sort = TRUE) |> 
+  plot_ly(labels = ~action_type, values = ~n) |> 
+  add_pie(hole = 0.6)
+```
+
+```{r}
+#| title: Language
+
+changesets |> 
+  select(locale) |> 
+  filter(!is.na(locale)) |> 
+  count(locale) |> 
+  mutate(locale = fct_reorder(locale, n)) |> 
+  plot_ly(labels = ~locale, values = ~n) |> 
+  add_pie(hole = 0.6)
+
+```
+
+
+
+
+# Wiki
+```{r}
+wiki_stats <- calc_stats_contributions_wiki(wiki_contributions) 
+```
+
+## Valueboxes
+
+```{r}
+#| content: valuebox
+#| title: "# users with wiki edits"
+#| icon: wikipedia
+#| color: primary
+wiki_stats[1]
+```
+
+```{r}
+#| content: valuebox
+#| title: "total additions"
+#| icon: database-add
+#| color: green
+
+df <- as.data.frame(wiki_stats[4])
+round(sum(df$additions, na.rm = TRUE), digits = 2)
+
+  
+```
+
+```{r}
+#| content: valuebox
+#| title: "total deletions"
+#| icon: database-dash
+#| color: red
+
+df <- as.data.frame(wiki_stats[4])
+round(sum(df$deletions, na.rm = TRUE), digits = 2)
+
+```
+
+```{r}
+#| content: valuebox
+#| title: "# of new pages created"
+#| icon: file-earmark-plus
+
+# sum(wiki_contributions$new, na.rm = TRUE)
+wiki_contributions |> 
+  filter(parentid == 0) |> 
+  count(parentid) |> 
+  pull(n)
+
+
+```
+
+
+## Row
+
+
+```{r}
+#| title: When do they contribute?
+
+wiki_edits_day_time <- wiki_contributions |> 
+  select(timestamp) |> 
+  mutate(date = ymd_hms(timestamp),
+         weekday = weekdays(date),
+         weekday = forcats::fct_relevel(
+           as.factor(weekday), 
+           "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"),
+         time = hms::as_hms(date),
+         hour = hour(time)) |> 
+  count(weekday, hour) |> 
+  # Converting to wide to generate NAs
+  pivot_wider(names_from = hour, values_from = n) |>
+  pivot_longer(-weekday, names_to = "hour", values_to = "n") |> 
+  mutate(hour = as.numeric(hour)) 
+  # mutate(n = replace_na(n, 0))
+
+heatmap <- ggplot(wiki_edits_day_time, aes(hour, weekday, fill= n)) + 
+  geom_tile(show.legend = FALSE) +
+  labs(y = NULL) + 
+  scale_fill_distiller(palette = "Blues", direction = 1) +
+  # scale_x_continuous(position = "top")  + # Does not work with plotly!
+  theme_minimal() 
+  # theme(panel.background = element_rect(fill = 'lightgrey'),
+  #       # panel.grid.minor = element_line(color = 'white', size = 2)
+  #       )
+
+heatmap_interactive <- ggplotly(heatmap)
+
+heatmap_interactive
+
+```
+
+```{r}
+#| title: "Written words by language"
+wiki_contributions |> 
+  select(title, sizediff) |> 
+  mutate(lang = str_extract(title, "^([a-zA-Z]){2}\\:"),
+         lang = str_remove(lang, ":"),
+         lang = str_to_upper(lang),
+         lang = case_when(is.na(lang) ~ "EN",
+                          .default = lang)) |> 
+  count(lang, wt = sizediff, sort = TRUE) |> 
+  mutate(lang = fct_reorder(lang, n)) |> 
+  plot_ly(labels = ~lang, values = ~n) |> 
+  add_pie(hole = 0.6)
+```
+
+```{r}
+#| title: "Wiki changes and size"
+p <- wiki_contributions |> 
+  select(title, size, sizediff) |> 
+  mutate(sizediff = abs(sizediff)) |> 
+  ggplot(aes(x = size, y = sizediff)) +
+  geom_point() +
+  # scale_x_log10() +
+  # scale_y_log10() + 
+  labs(x = "Number of features in changeset",
+       y = "Number of changesets") + 
+  theme_minimal()
+
+ggplotly(p)
+```
+
+
+
+## Row
+```{r}
+#| title: "Top 15 contributed wiki pages"
+plot <- wiki_contributions_stats[[5]] |>
+  mutate(title = fct_reorder(title, n)) |> 
+  head(15) |> 
+  ggplot(aes(x = n, y = title, label = n)) +
+  geom_bar(stat="identity") +
+  # geom_text(color = "white", hjust = 1.2) +
+  labs(x = NULL, y = NULL) +
+  theme_minimal() +
+  theme(panel.grid= element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x = element_blank())
+ 
+
+ggplotly(plot)
+
+```
+
+# Other contributions
+
+Here we will include diaries, notes and gpx traces.
+
+## Valueboxes
+```{r}
+#| content: valuebox
+#| title: "# users with diary notes"
+#| icon: calendar
+#| color: primary
+contributions_summary |> 
+  filter(diary > 0) |> 
+  nrow()
+```
+
+# About {scrolling="true"}
+
+
+
+Explain who we are, how data was populated and that no personal data is exposed.
+
+Acknolwedge inspiration from Pascal Neis' HDYC.
