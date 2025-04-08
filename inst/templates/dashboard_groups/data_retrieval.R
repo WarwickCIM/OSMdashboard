@@ -6,8 +6,11 @@ library(sf)
 
 # Retrieve data -----------------------------------------------------------
 
-group_info <- read.csv("data/group_info.csv")
-group_users <- read.csv("data/group_users.csv")
+# Add folder name if dashboard is not in the root of the project. Add trailing /
+base_path <- ""
+
+group_info <- read.csv(paste0(base_path, "data/group_info.csv"))
+group_users <- read.csv(paste0(base_path, "data/group_users.csv"))
 
 selected_users <- group_users$username
 
@@ -21,15 +24,19 @@ changesets_details <- get_changesets_details(changesets$id)
 
 changesets_tags <- extract_and_combine_tags(changesets_details)
 
-write.csv(changesets, file = "data/changesets.csv", row.names = FALSE)
+write.csv(changesets, file = paste0(base_path, "data/changesets.csv"),
+          row.names = FALSE)
 
-sf::st_write(changesets, dsn = "data/changesets.gpkg", append = FALSE)
+sf::st_write(changesets, dsn = paste0(base_path, "data/changesets.gpkg"),
+             append = FALSE)
 
-write.csv(changesets_tags, file = "data/changesets_tags.csv")
+write.csv(changesets_tags,
+          file = paste0(base_path, "data/changesets_tags.csv"))
 
 changesets_details |>
   dplyr::select(-tags, -members) |>
-  write.csv(file = "data/changesets_details.csv", row.names = FALSE)
+  write.csv(file = paste0(base_path, "data/changesets_details.csv"),
+            row.names = FALSE)
 
 
 # Wiki --------------------------------------------------------------------
@@ -41,7 +48,7 @@ wiki_contributions <- get_contributions_wiki(selected_users) |>
 wiki_contributions_n <- wiki_contributions |>
   count(user)
 
-write.csv(wiki_contributions, "data/wiki_contributions.csv",
+write.csv(wiki_contributions, paste0(base_path, "data/wiki_contributions.csv"),
   row.names = FALSE
 )
 
@@ -52,10 +59,9 @@ users_diaries <- osm_user_details |>
   pull(user)
 
 contributions_diaries <- get_contributions_diaries(users_diaries)
-get_contributions_diaries("msevilla00")
 
 write.csv(contributions_diaries,
-          "group_contributions/data/contributions_diaries.csv",
+          paste0(base_path, "data/contributions_diaries.csv"),
           row.names = FALSE
 )
 
@@ -73,8 +79,6 @@ contributions_summary <- osm_user_details |>
   left_join(wiki_contributions_n, by = "user")
 
 write.csv(contributions_summary,
-  "group_contributions/data/contributions_summary.csv",
+  paste0(base_path, "data/contributions_summary.csv"),
   row.names = FALSE
 )
-
-
