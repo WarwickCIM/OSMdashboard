@@ -37,8 +37,11 @@ Imports:
     dplyr,
     lubridate,
     osmapiR,
+    purrr,
     rvest,
     stringr,
-    tidyr
+    tidyr,
+    tidyRSS,
+    WikipediR
 Suggests: 
     sf
