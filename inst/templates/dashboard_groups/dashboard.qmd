@@ -6,19 +6,29 @@ format:
     orientation: rows
     # scrolling: true
     self-contained: true
+    nav-buttons:
+        - icon: github
+          href: https://github.com/WarwickCIM/OSMdashboard
 ---
+
+```{r user input}
+# Uncomment to update datasets.
+# source(file = "data_retrieval.R")
+
+# Add folder name if dashboard is not in the root of the project. Add trailing /
+base_path <- ""
+```
+
 
 ```{r setup}
 #| echo: false
 #| warning: false
 #| output: false
 
-# Uncomment to update datasets.
-# source(file = "R/data_retrieval.R")
-
 library(dplyr)
-library(ggplot2)
 library(forcats)
+library(ggplot2)
+library(here)
 library(knitr)
 library(leaflet)
 library(leaflet.extras)
@@ -30,14 +40,6 @@ library(sf)
 library(stringr)
 library(tidyr)
 library(treemapify)
-
-files.sources = list.files("R/", full.names = TRUE)
-sapply(files.sources, source)
-
-
-
-
-
 
 # GGplot configs ---------------------------------------------------------------------------
 
@@ -53,37 +55,42 @@ sapply(files.sources, source)
 
 ```
 
-```{r data-map contributions}
-changesets <- read_csv("data/changesets.csv") |> 
+```{r load-datasets}
+group_info <- read.csv(paste0(base_path, "data/group_info.csv"))
+
+changesets <- read_csv(paste0(base_path, "data/changesets.csv")) |> 
   mutate(user = as.factor(user))
 
+changesets_sf <- read_sf(paste0(base_path, "data/changesets.gpkg"))
 
-changesets_sf <- sf::read_sf("data/changesets.gpkg")
-  # Uncomment to check if geometry is valid
-  # st_is_valid(changesets_sf_centroids, reason = TRUE) 
+changesets_details <- read_csv(paste0(base_path, "data/changesets_details.csv"))
 
-changesets_sf_repaired<- changesets_sf |> 
-  # Some 
+changesets_tags <- read_csv(paste0(base_path, "data/changesets_tags.csv"))
+
+wiki_contributions <- read.csv(paste0(base_path, "data/wiki_contributions.csv"))
+
+contributions_summary <- read.csv(paste0(base_path, "data/contributions_summary.csv"))
+
+```
+
+
+```{r data-map contributions}
+
+# Uncomment to check if geometry is valid
+# st_is_valid(changesets_sf_centroids, reason = TRUE) 
+
+changesets_sf_repaired <- changesets_sf |> 
   st_make_valid() 
 
 changesets_sf_repaired$area_meters <- st_area(changesets_sf_repaired)
 changesets$area_meters <- st_area(changesets_sf_repaired)
 
-# changesets2 <- changesets_sf_repaired |> 
-#   as_tibble() |> 
-#   select(id, area_meters) |> 
-#   # mutate(area = as.numeric(area_meters)) |> 
-#   right_join(changesets)
-
-
 changesets_sf_centroids <- changesets_sf_repaired |> 
-  # Some 
   st_centroid() %>% # Need to use pipe operator to make the below work.
   mutate(lon = sf::st_coordinates(.)[,1],
          lat = sf::st_coordinates(.)[,2])
 
-changesets_details <- read_csv("data/changesets_details.csv")
-changesets_tags <- read_csv("data/changesets_tags.csv")
+
 
 n_users <- nlevels(changesets$user)
 
@@ -99,8 +106,6 @@ contributions_n_changesets <- nrow(changesets)
 
 ```{r data-wiki-contrib}
 
-wiki_contributions <- read.csv("data/wiki_contributions.csv")
-
 wiki_contributions_stats <- calc_stats_contributions_wiki(wiki_contributions)
 
 wiki_contributions_n <- wiki_contributions |> 
@@ -111,14 +116,6 @@ wiki_contributions_n <- wiki_contributions |>
 
 
 ```{r data-other}
-
-osm_user_details <- read.csv("data/osm_user_details.csv")
-
-# TODO: to be replaced by loading a dataset generated from data_retrieval.
-contributions_summary <- osm_user_details |> 
-  mutate(user = tolower(user),
-         account_age = as.integer(difftime(today(), date_creation, units="days"))/365 ) |> 
-  left_join(wiki_contributions_n, by = "user") 
 
 contributions_type <- contributions_summary |> 
   select(-starts_with("date"), -account_age) |> 
@@ -133,15 +130,13 @@ contributions_type <- contributions_summary |>
 
 # Overview
 
-## Tilr and description
+## Title and description
 
 ::: {.card .flow}
 
-## Group name (e.g. Geochicas)
+## `r group_info$name[1]`
 
-An explanation of the group, e.g. when was created, what's their aim...
-
-This group has contributed `r nrow(changesets)` between `r date_start` and `r date_end`.
+`r group_info$description[1]`
 
 :::
 
@@ -748,18 +743,60 @@ Here we will include diaries, notes and gpx traces.
 ## Valueboxes
 ```{r}
 #| content: valuebox
-#| title: "# users with diary notes"
-#| icon: calendar
+#| title: "# users with diary entries"
+#| icon: pencil-square
 #| color: primary
 contributions_summary |> 
   filter(diary > 0) |> 
   nrow()
 ```
 
+```{r}
+#| content: valuebox
+#| title: "# users with map notes"
+#| icon: sticky
+#| color: primary
+contributions_summary |> 
+  filter(map_notes > 0) |> 
+  nrow()
+```
+
+
+```{r}
+#| content: valuebox
+#| title: "# users with gpx traces"
+#| icon: pin-map
+#| color: primary
+contributions_summary |> 
+  filter(traces > 0) |> 
+  nrow()
+```
+
 # About {scrolling="true"}
 
+::: {.card .flow}
 
 
-Explain who we are, how data was populated and that no personal data is exposed.
+This dashboard is a proof of concept that displays how a group of users contribute to OpenStreetMap with special consideration to EDI issues. That means, for example, that this dashboard recognises different types of contributions and all data shown has been anonymised.
 
-Acknolwedge inspiration from Pascal Neis' HDYC.
+This dashboard is a result of a codesign process with members of [Geochicas](https://wiki.openstreetmap.org/wiki/LatAm/Groups/GeoChicas) and the [Centre for Interdisciplinary Methodologies](https://warwick.ac.uk/cim) at the University of Warwick, and is inspired by Pascal Neis' great [HDYC](https://hdyc.neis-one.org/), but with notable important differences: 
+
+- It displays how certain groups of users contribute to OSM, without revealing who their members are. For the purposes of this dashboard, a group is a number of users that have a shared interests who self-report as members of a group.
+- It recognises that there are different ways of contributing to OSM beyond map contributions (e.g. wiki edits, user diaries...). As such, it incorporates data from different sources (see below).
+- It is opensource: you can see the code (and contribute to it!) in [this GitHub repository](https://github.com/WarwickCIM/OSMdashboard).
+- It is self-hosted (for now! -keep tuned), meaning that data stays in your computer.
+- It is way slower! 
+
+## Data Sources
+
+- OpenStreetMap API (via [`{{osmapiR}})`]())
+- OpenStreetMap Wiki API 
+- OpenStreetMap User profiles
+
+## Acknowledgements
+
+## How to cite
+
+If you want to cite this work, please do it as follows:
+
+:::
