@@ -68,7 +68,6 @@ write.csv(contributions_diaries,
 
 # Contributions summary ---------------------------------------------------
 
-
 contributions_summary <- osm_user_details |>
   mutate(
     user = tolower(user),
