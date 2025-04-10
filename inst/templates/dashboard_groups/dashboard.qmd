@@ -204,7 +204,7 @@ contributions_summary |>
   geom_boxplot() +
   facet_wrap(~name, ncol=1, scales = "free_x")+ 
   labs(y = "", x ="") +
-  theme_minimal() +
+  # theme_minimal() +
   theme(
     axis.title.y=element_blank(),
     axis.ticks.y = element_blank(),
@@ -396,7 +396,8 @@ plot_ly(
   type = "treemap",
   labels = ~key,
   values = ~n,
-  parents = ~top_key
+  parents = ~top_key,
+  hoverinfo = "label+value+percent parent+percent entry+percent root"
 )
 
 ```
@@ -443,6 +444,8 @@ changesets |>
   head(15) |> 
   kable()
 ```
+
+
 
 ```{r}
 #| title: "Most Used keys 2"
@@ -582,13 +585,20 @@ changesets_tags |>
 
 changesets |> 
   select(locale) |> 
-  filter(!is.na(locale)) |> 
-  count(locale) |> 
-  mutate(locale = fct_reorder(locale, n)) |> 
-  plot_ly(labels = ~locale, values = ~n) |> 
+  separate_wider_delim(
+    locale, delim = "-", names = c("language", "country"), 
+    too_few = "align_start",
+    cols_remove = FALSE
+  ) |> 
+  filter(!is.na(language)) |> 
+  count(language) |> 
+  mutate(language = fct_reorder(language, n)) |> 
+  plot_ly(labels = ~language, values = ~n) |> 
   add_pie(hole = 0.6)
 
 ```
+
+
 
 
 
@@ -702,19 +712,18 @@ wiki_contributions |>
 ```{r}
 #| title: "Wiki changes and size"
 p <- wiki_contributions |> 
-  select(title, size, sizediff) |> 
-  mutate(sizediff = abs(sizediff)) |> 
+  select(size, sizediff) |> 
+  # mutate(sizediff = abs(sizediff)) |> 
   ggplot(aes(x = size, y = sizediff)) +
   geom_point() +
   # scale_x_log10() +
   # scale_y_log10() + 
-  labs(x = "Number of features in changeset",
-       y = "Number of changesets") + 
+  labs(x = "Page size",
+       y = "Characters added/remov") + 
   theme_minimal()
 
 ggplotly(p)
 ```
-
 
 
 ## Row
@@ -737,31 +746,64 @@ ggplotly(plot)
 
 ```
 
-# Other contributions
+# Other contributions {orientation="columns"}
 
-Here we will include diaries, notes and gpx traces.
-
-## Valueboxes
+## Diaries
 ```{r}
 #| content: valuebox
 #| title: "# users with diary entries"
 #| icon: pencil-square
 #| color: primary
+#| height: 30px
 contributions_summary |> 
   filter(diary > 0) |> 
   nrow()
 ```
+
+Total diary entries
+
+Wordcount based on titles
+
+## Notes
 
 ```{r}
 #| content: valuebox
 #| title: "# users with map notes"
 #| icon: sticky
 #| color: primary
-contributions_summary |> 
+notes_users <- contributions_summary |> 
   filter(map_notes > 0) |> 
   nrow()
+
+notes_users
 ```
 
+```{r}
+#| content: valuebox
+#| title: "# of notes"
+#| icon: sticky
+#| color: primary
+notes_total <- contributions_summary |> 
+  select(map_notes) |> 
+  pivot_longer(map_notes) |> 
+  count(name, wt = value) |> 
+  pull(n)
+
+format(notes_total, big.mark = ",")
+```
+
+```{r}
+#| content: valuebox
+#| title: "# of notes/user"
+#| icon: sticky
+#| color: primary
+notes_total / notes_users
+```
+
+Wordcout based on notes contents
+
+
+## Traces
 
 ```{r}
 #| content: valuebox
@@ -772,6 +814,13 @@ contributions_summary |>
   filter(traces > 0) |> 
   nrow()
 ```
+
+### 
+
+Total km
+
+### 
+Total traces by country
 
 # About {scrolling="true"}
 
@@ -790,7 +839,7 @@ This dashboard is a result of a codesign process with members of [Geochicas](htt
 
 ## Data Sources
 
-- OpenStreetMap API (via [`{{osmapiR}})`]())
+- OpenStreetMap API (via [`{{osmapiR}})`](https://docs.ropensci.org/osmapiR/index.html))
 - OpenStreetMap Wiki API 
 - OpenStreetMap User profiles
 
