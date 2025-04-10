@@ -204,12 +204,13 @@ contributions_summary |>
   geom_boxplot() +
   facet_wrap(~name, ncol=1, scales = "free_x")+ 
   labs(y = "", x ="") +
-  # theme_minimal() +
+  theme_minimal() +
   theme(
     axis.title.y=element_blank(),
     axis.ticks.y = element_blank(),
     axis.text.y = element_blank(),
-    panel.grid= element_blank()
+    panel.grid= element_blank(),
+    legend.position = "none"
   )
 ```
 
