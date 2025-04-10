@@ -2,3 +2,24 @@ url: ~
 template:
   bootstrap: 5
 
+reference:
+  - title: Data retrieval
+    desc: >
+      Functions to retrieve data from different sources
+    contents:
+    - starts_with("get_")
+  - title: Data manipulation
+    desc: Process raw data to generate datasets to be consumed by the data visualisations.
+    contents:
+    - calc_stats_contributions_wiki
+    - extract_and_combine_tags
+    - stats_contributions_wiki
+    - get_key_classification
+  - title: Scaffolding
+    desc: Functions that generate the necessary files to create data visualisations
+    contents:
+    - create_dashboard
+  - title: All
+    desc: "Every function, sorted alphabetically"
+    contents:
+    - starts_with("*")
