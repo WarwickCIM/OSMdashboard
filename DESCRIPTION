@@ -15,15 +15,23 @@ Authors@R: c(
     ),
     person(
       "Selene", "Yang",
-      role = "rev"
+      role = "aut",
+      comment = c("As a member of Geochicas, Selene contributed to the ideation of the dashboard as part of the co-design process.", ORCID = "0000-0001-8501-8338")
     ),
     person(
       "Silvia", "Rivera Alfaro",
-      role = "rev"
+      role = "aut",
+      comment = c("As a member of Geochicas, Silvia contributed to the ideation of the dashboard as part of the co-design process.", ORCID = "0000-0001-5971-7389")
     ),
     person(
       "Alejandra", "Canclini",
-      role = "rev"
+      role = "aut",
+      comment = c("As a member of Geochicas, Alejandra contributed to the ideation of the dashboard as part of the co-design process.")
+    ),
+    person(
+      "ESRC Digital Good Network",
+      role = "fnd",
+      comment = c("This project has been funded by the Digital Good Research Fund 2024")
     )
   )
 Description: What the package does (one paragraph).
