@@ -56,6 +56,10 @@ You can easily create a dashboard displaying group contributions by:
 
 ## Contributors
 
+This project welcomes any type of contributions, not just coding. It follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification as a way to recognise that, while addressing d'Ignazio and Klein (2016, p3) design principle for feminist data visualisations:
+
+> **Make labor visible:** “Starting with questions of data provenance helps to credit the bodies that make visualization possible – the bodies that collect the data, that digitize them, that clean them, and that maintain them. However, most data provenance research focuses on technical rather than human points of origination and integration [66]. With its emphasis on under-valued forms of labor, a feminist approach to visualization can help to render visible the bodies that shape and care for data at every stage of the process. This relates to the concept of provenance rhetoric [44] in which authors of narrative visualizations cite data sources and methods which may help build credibility with the audience.” (Ignazio and Klein, 2016, p. 3)
+
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
 <!-- markdownlint-disable -->
