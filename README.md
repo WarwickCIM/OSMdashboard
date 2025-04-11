@@ -14,6 +14,8 @@ public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostat
 
 The goal of OSMdashboard is to create interactive dashboards that visualise OSM-data locally and just by filling a csv file.
 
+![Dashboard screenshot](man/figures/dashboard-screenshot.png)
+
 ## Citing
 
 
