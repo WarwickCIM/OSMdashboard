@@ -14,7 +14,11 @@
       "avatar_url": "https://avatars.githubusercontent.com/u/706549?v=4",
       "profile": "http://carloscamara.es/en",
       "contributions": [
-        "code"
+        "code",
+        "ideas",
+        "design",
+        "infra",
+        "research"
       ]
     }
   ]
