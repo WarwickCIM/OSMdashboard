@@ -14,7 +14,7 @@ reference:
     - calc_stats_contributions_wiki
     - extract_and_combine_tags
     - stats_contributions_wiki
-    - get_key_classification
+    - categorise_keys
   - title: Scaffolding
     desc: Functions that generate the necessary files to create data visualisations
     contents:

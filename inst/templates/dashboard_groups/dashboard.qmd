@@ -373,7 +373,7 @@ changesets_details |>
 #| title: "Most Used keys"
 key_counts <- changesets_tags  |>
   count(key, sort = TRUE) |> 
-  get_key_classification() |> 
+  categorise_keys() |> 
   mutate(parent_key = replace_na(parent_key, "other"),
          top_key = replace_na(top_key, "other"))
 
@@ -451,7 +451,7 @@ changesets |>
 #| title: "Most Used keys 2"
 key_counts2 <- changesets_tags  |>
   count(key, sort = TRUE) |> 
-  get_key_classification() |> 
+  categorise_keys() |> 
   count(top_key, parent_key, wt = n) |> 
   mutate(parent_key = replace_na(parent_key, "other"),
          top_key = replace_na(top_key, "other"),
