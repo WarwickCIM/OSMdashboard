@@ -30,6 +30,16 @@
         "ideas",
         "research"
       ]
+    },
+    {
+      "name": "ESRC Digital Good Network",
+      "description": "Funding",
+      "avatar_url": "https://warwick.ac.uk/fac/cross_fac/cim/research/digital-good-neutrality-osm/screenshot_2024-09-19_at_10-15-55_esrc_digital_good_network_-_esrc_digital_good_network.png",
+      "profile": "https://digitalgood.net/",
+      "contributions": [
+        "financial"
+      ]
     }
-  ]
+  ],
+  "repoType": "github"
 }
