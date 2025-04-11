@@ -22,9 +22,6 @@ The goal of OSMdashboard is to create interactive dashboards that visualise OSM-
 ## Citing
 
 
-## Acknowledgements
-
-
 ## Installation
 
 You can install the development version of OSMdashboard from [GitHub](https://github.com/) with:
@@ -56,7 +53,7 @@ You can easily create a dashboard displaying group contributions by:
 
 ## Contributors
 
-This project welcomes any type of contributions, not just coding. It follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification as a way to recognise that, while addressing d'Ignazio and Klein (2016, p3) design principle for feminist data visualisations:
+This project welcomes any type of contributions, not just coding. It follows the [all-contributors](https://allcontributors.org) specification as a way to recognise that, while addressing d'Ignazio and Klein (2016, p3) design principle for feminist data visualisations:
 
 > **Make labor visible:** “Starting with questions of data provenance helps to credit the bodies that make visualization possible – the bodies that collect the data, that digitize them, that clean them, and that maintain them. However, most data provenance research focuses on technical rather than human points of origination and integration [66]. With its emphasis on under-valued forms of labor, a feminist approach to visualization can help to render visible the bodies that shape and care for data at every stage of the process. This relates to the concept of provenance rhetoric [44] in which authors of narrative visualizations cite data sources and methods which may help build credibility with the audience.” (Ignazio and Klein, 2016, p. 3)
 
@@ -66,9 +63,9 @@ This project welcomes any type of contributions, not just coding. It follows the
 <table>
   <tbody>
     <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://digitalgood.net/"><img src="https://warwick.ac.uk/fac/cross_fac/cim/research/digital-good-neutrality-osm/screenshot_2024-09-19_at_10-15-55_esrc_digital_good_network_-_esrc_digital_good_network.png?s=100" width="100px;" alt="ESRC Digital Good Network"/><br /><sub><b>ESRC Digital Good Network</b></sub></a><br /><a href="#financial" title="Financial">💵</a></td>
       <td align="center" valign="top" width="14.28%"><a href="http://carloscamara.es/en"><img src="https://avatars.githubusercontent.com/u/706549?v=4?s=100" width="100px;" alt="Carlos Cámara"/><br /><sub><b>Carlos Cámara</b></sub></a><br /><a href="https://github.com/WarwickCIM/OSMdashboard/commits?author=ccamara" title="Code">💻</a> <a href="#ideas-ccamara" title="Ideas, Planning, & Feedback">🤔</a> <a href="#design-ccamara" title="Design">🎨</a> <a href="#infra-ccamara" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a> <a href="#research-ccamara" title="Research">🔬</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/timothymonteath"><img src="https://avatars.githubusercontent.com/u/17410066?v=4?s=100" width="100px;" alt="timothymonteath"/><br /><sub><b>timothymonteath</b></sub></a><br /><a href="#ideas-timothymonteath" title="Ideas, Planning, & Feedback">🤔</a> <a href="#research-timothymonteath" title="Research">🔬</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://digitalgood.net/"><img src="https://warwick.ac.uk/fac/cross_fac/cim/research/digital-good-neutrality-osm/screenshot_2024-09-19_at_10-15-55_esrc_digital_good_network_-_esrc_digital_good_network.png?s=100" width="100px;" alt="ESRC Digital Good Network"/><br /><sub><b>ESRC Digital Good Network</b></sub></a><br /><a href="#financial" title="Financial">💵</a></td>
     </tr>
   </tbody>
 </table>
