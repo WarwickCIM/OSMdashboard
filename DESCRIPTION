@@ -39,7 +39,7 @@ License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
-URL: https://github.com/WarwickCIM/OSMdashboard
+URL: https://github.com/WarwickCIM/OSMdashboard, https://warwickcim.github.io/OSMdashboard/
 BugReports: https://github.com/WarwickCIM/OSMdashboard/issues
 Imports: 
     dplyr,
