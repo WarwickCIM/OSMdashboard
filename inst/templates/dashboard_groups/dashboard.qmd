@@ -56,20 +56,20 @@ library(treemapify)
 ```
 
 ```{r load-datasets}
-group_info <- read.csv(paste0(base_path, "data/group_info.csv"))
+group_info <- read.csv(paste0(base_path, "data/metadata/group_info.csv"))
 
-changesets <- read_csv(paste0(base_path, "data/changesets.csv")) |> 
+changesets <- read_csv(paste0(base_path, "data/raw/changesets.csv")) |> 
   mutate(user = as.factor(user))
 
-changesets_sf <- read_sf(paste0(base_path, "data/changesets.gpkg"))
+changesets_sf <- read_sf(paste0(base_path, "data/raw/changesets.gpkg"))
 
-changesets_details <- read_csv(paste0(base_path, "data/changesets_details.csv"))
+changesets_details <- read_csv(paste0(base_path, "data/raw/changesets_details.csv"))
 
-changesets_tags <- read_csv(paste0(base_path, "data/changesets_tags.csv"))
+changesets_tags <- read_csv(paste0(base_path, "data/raw/changesets_tags.csv"))
 
-wiki_contributions <- read.csv(paste0(base_path, "data/wiki_contributions.csv"))
+wiki_contributions <- read.csv(paste0(base_path, "data/raw/wiki_contributions.csv"))
 
-contributions_summary <- read.csv(paste0(base_path, "data/contributions_summary.csv"))
+contributions_summary <- read.csv(paste0(base_path, "data/raw/contributions_summary.csv"))
 
 ```
 

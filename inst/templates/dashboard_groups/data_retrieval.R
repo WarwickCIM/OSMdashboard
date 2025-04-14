@@ -9,8 +9,8 @@ library(sf)
 # Add folder name if dashboard is not in the root of the project. Add trailing /
 base_path <- ""
 
-group_info <- read.csv(paste0(base_path, "data/group_info.csv"))
-group_users <- read.csv(paste0(base_path, "data/group_users.csv"))
+group_info <- read.csv(paste0(base_path, "data/metadata/group_info.csv"))
+group_users <- read.csv(paste0(base_path, "data/metadata/group_users.csv"))
 
 selected_users <- group_users$username
 
