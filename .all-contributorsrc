@@ -39,6 +39,15 @@
         "ideas",
         "research"
       ]
+    },
+    {
+      "login": "seleneyang",
+      "name": "Selene Yang",
+      "avatar_url": "https://avatars.githubusercontent.com/u/20440464?v=4",
+      "profile": "http://seleneyang.info",
+      "contributions": [
+        "ideas"
+      ]
     }
   ],
   "repoType": "github"
