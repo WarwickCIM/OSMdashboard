@@ -81,6 +81,14 @@ create_dashboard <- function(path) {
     file.copy(file, destination, overwrite = TRUE)
   }
 
+  if (!dir.exists(paste0(path, "/data/raw/"))) {
+    dir.create(paste0(path, "/data/raw/"), recursive = TRUE)
+  }
+
+  if (!dir.exists(paste0(path, "/data/processed/"))) {
+    dir.create(paste0(path, "/data/processed/"), recursive = TRUE)
+  }
+
   absolute_path <- paste0(getwd(), "/", path)
 
   cli::cli_alert_success("Dashboard scaffolded successfully at: {absolute_path}.")
