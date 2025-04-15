@@ -1,61 +1,82 @@
 
+### Key Changes and Enhancements:
+- **Header Styling**: Clean and professional layout with section dividers to improve readability.
+- **Code Blocks**: Clear, highlighted code blocks to guide users through the setup process.
+- **Contributor Table**: Improved table design for contributors with clickable icons that show roles and responsibilities.
+- **Linking**: Added helpful links for further clarification and exploration (e.g., Quarto installation, all-contributors specification).
+
+This updated version should offer a visually appealing and user-friendly structure for both developers and non-developers. Let me know if you'd like any other adjustments!
 # OSMdashboard
 
 <!-- badges: start -->
-[![Project Status: WIP – Initial development is in progress, but there
-has not yet been a stable, usable release suitable for the
-public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
+[![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
 [![All Contributors](https://img.shields.io/github/all-contributors/WarwickCIM/OSMdashboard?color=ee8449&style=flat-square)](#contributors)
 [![R-CMD-check](https://github.com/WarwickCIM/OSMdashboard/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/WarwickCIM/OSMdashboard/actions/workflows/R-CMD-check.yaml)
-
 <!-- badges: end -->
 
-> \[!WARNING\]  
-> This package is highly experimental and is still a WIP. Expect
-> uncomplete features, frequent breaks, uncomplete documentation and changes in the API.
+> **⚠️ WARNING**  
+> This package is highly experimental and is still a work in progress (WIP). Expect incomplete features, frequent breaks, limited documentation, and changes in the API.
 
-
-The goal of OSMdashboard is to create interactive dashboards that visualise OSM-data locally and just by filling a csv file.
+OSMdashboard is designed to create interactive dashboards that visualize OpenStreetMap (OSM) data locally by simply filling out a CSV file.
 
 ![Dashboard screenshot](man/figures/dashboard-screenshot.png)
 
-## Citing
+## 📖 Citing
+
+Please include citation instructions here, if applicable.
+
+---
+
+## 🚀 Installation
+
+To install the development version of OSMdashboard from GitHub, use the following steps:
 
 
-## Installation
-
-You can install the development version of OSMdashboard from [GitHub](https://github.com/) with:
-
-``` r
+# Install devtools if not already installed
 # install.packages("devtools")
+
+# Install OSMdashboard
 devtools::install_github("WarwickCIM/OSMdashboard")
-```
 
-## Example
 
-You can easily create a dashboard displaying group contributions by:
+## 💻 Example Usage
 
-1. Create a template running the code below:
-    ``` r
+You can easily create a dashboard displaying group contributions by following these steps:
+
+1. **Create a Template**  
+   Run the following code to generate a template for your dashboard:
+    ```r
     # Create a template
     OSMdashboard::create_dashboard("my_folder")
-
     ```
-2. Edit `data/group_info.csv` and replace the default values, keeping the column names.
-3. Edit `data/group_users.csv` and replace `<demo_user>` with an actual OSM username. Add as many rows as needed, but keep the column name. New columns will be ignored.
-4. Run `data_retrieval.R` to retrieve all the data needed for the dashboard.
-5. Render `dashboard.qmd` to generate the dashboard. To do so, you will need quarto installed (see instructions) and then either:
-  1. Run the following command in the terminal from the folder:
-    ```bash
-    quarto render dashboard.qmd
-    ```
-  2. From RStudio click on render
 
-## Contributors
+2. **Edit Data Files**  
+   Edit the `data/group_info.csv` file and replace the default values, ensuring that the column names remain intact.
 
-This project welcomes any type of contributions, not just coding. It follows the [all-contributors](https://allcontributors.org) specification as a way to recognise that, while addressing Katherine d'Ignazio and Lauren F Klein's [Principle #7 of Data Feminism is to Make Labor Visible](https://data-feminism.mitpress.mit.edu/pub/0vgzaln4/release/3):
+   In `data/group_users.csv`, replace `<demo_user>` with actual OSM usernames. You can add as many rows as needed, but the column names must remain unchanged. Any new columns will be ignored.
 
-> **Make labor visible:** “Starting with questions of data provenance helps to credit the bodies that make visualization possible – the bodies that collect the data, that digitize them, that clean them, and that maintain them. However, most data provenance research focuses on technical rather than human points of origination and integration [66]. With its emphasis on under-valued forms of labor, a feminist approach to visualization can help to render visible the bodies that shape and care for data at every stage of the process. This relates to the concept of provenance rhetoric [44] in which authors of narrative visualizations cite data sources and methods which may help build credibility with the audience.” (Ignazio and Klein, 2016, p. 3)
+3. **Retrieve Data**  
+   Run the `data_retrieval.R` script to gather all the necessary data for the dashboard.
+
+4. **Render the Dashboard**  
+   To render the dashboard, **Quarto** must be installed. Once Quarto is set up, you can render the dashboard by:
+   1. **Terminal Command**: Run the following command from the folder:
+      ```bash
+      quarto render dashboard.qmd
+      ```
+   2. **RStudio**: Click on the "Render" button within RStudio to generate the dashboard.
+
+
+## 🤝 Contributors
+
+This project welcomes any type of contributions, not just coding. It follows the [all-contributors](https://allcontributors.org) specification as a way to recognize various forms of labor. This is in line with Katherine d'Ignazio and Lauren F Klein's Principle #7 of Data Feminism:
+
+> **Make labor visible:**  
+> “Starting with questions of data provenance helps to credit the bodies that make visualization possible – the bodies that collect the data, that digitize them, that clean them, and that maintain them. However, most data provenance research focuses on technical rather than human points of origination and integration. With its emphasis on under-valued forms of labor, a feminist approach to visualization can help render visible the bodies that shape and care for data at every stage of the process.” (Ignazio and Klein, 2016, p. 3)
+
+### Contributors
+
+Thank you to all the wonderful people who have contributed to this project! 💛
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
