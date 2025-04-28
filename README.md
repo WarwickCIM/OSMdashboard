@@ -69,6 +69,7 @@ This project welcomes any type of contributions, not just coding. It follows the
       <td align="center" valign="top" width="14.28%"><a href="http://seleneyang.info"><img src="https://avatars.githubusercontent.com/u/20440464?v=4?s=100" width="100px;" alt="Selene Yang"/><br /><sub><b>Selene Yang</b></sub></a><br /><a href="#ideas-seleneyang" title="Ideas, Planning, & Feedback">🤔</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/silvira"><img src="https://avatars.githubusercontent.com/u/78524262?v=4?s=100" width="100px;" alt="silvira"/><br /><sub><b>silvira</b></sub></a><br /><a href="#ideas-silvira" title="Ideas, Planning, & Feedback">🤔</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/malecanclini"><img src="https://avatars.githubusercontent.com/u/166962846?v=4?s=100" width="100px;" alt="malecanclini"/><br /><sub><b>malecanclini</b></sub></a><br /><a href="#ideas-malecanclini" title="Ideas, Planning, & Feedback">🤔</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/geochicas"><img src="https://avatars.githubusercontent.com/u/25299161?v=4?s=100" width="100px;" alt="Geochicas"/><br /><sub><b>Geochicas</b></sub></a><br /><a href="#promotion-geochicas" title="Promotion">📣</a></td>
     </tr>
   </tbody>
 </table>
