@@ -66,6 +66,15 @@
       "contributions": [
         "ideas"
       ]
+    },
+    {
+      "login": "geochicas",
+      "name": "Geochicas",
+      "avatar_url": "https://avatars.githubusercontent.com/u/25299161?v=4",
+      "profile": "https://github.com/geochicas",
+      "contributions": [
+        "promotion"
+      ]
     }
   ],
   "repoType": "github"
