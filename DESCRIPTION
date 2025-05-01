@@ -53,4 +53,7 @@ Imports:
     tidyRSS,
     WikipediR
 Suggests: 
+    knitr,
+    rmarkdown,
     sf
+VignetteBuilder: knitr

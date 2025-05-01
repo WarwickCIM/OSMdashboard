@@ -1,0 +1,31 @@
+---
+title: "Group contributions' dasbhoard"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{dashboard-group-contributions}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+Potential content:
+
+
+    Explain the dasbhoard's novelty
+    Method
+    How to use 
+
+## How to use the dashboard
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(OSMdashboard)
+
+
+
+```
