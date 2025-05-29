@@ -20,7 +20,7 @@ get_contributions_osm_users <- function(users) {
     print(user)
 
     # Sanitise url
-    user_clean <- sub(" ", "%20", user)
+    user_clean <- gsub(" ", "%20", user)
 
     # URL to scrape
     url <- paste0("https://www.openstreetmap.org/user/", user_clean)
