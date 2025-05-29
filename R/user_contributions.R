@@ -16,6 +16,12 @@ get_contributions_osm_users <- function(users) {
   df <- data.frame()
 
   for (user in users) {
+
+    print(user)
+
+    # Sanitise url
+    user <- sub(" ", "%20", user)
+
     # URL to scrape
     url <- paste0("https://www.openstreetmap.org/user/", user)
 
