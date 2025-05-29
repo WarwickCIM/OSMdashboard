@@ -20,10 +20,10 @@ get_contributions_osm_users <- function(users) {
     print(user)
 
     # Sanitise url
-    user <- sub(" ", "%20", user)
+    user_clean <- sub(" ", "%20", user)
 
     # URL to scrape
-    url <- paste0("https://www.openstreetmap.org/user/", user)
+    url <- paste0("https://www.openstreetmap.org/user/", user_clean)
 
     # Read the HTML content of the page
     page <- rvest::read_html(url)
