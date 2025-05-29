@@ -41,6 +41,11 @@ get_contributions_osm_users <- function(users) {
       rvest::html_elements("dd") |>
       rvest::html_text()
 
+    # Dirty way to make sure that only dates are retrieved (i.e. if the user has
+    # a location specified, it would be stored in user_dates, too!). It would be
+    # better to improve the xpath in the previous code.
+    user_dates <- tail(user_dates, 2)
+
     user_dates_df <- data.frame(
       user = user,
       dates = c("date_creation", "date_last_map_edit"),
