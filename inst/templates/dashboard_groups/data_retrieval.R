@@ -24,18 +24,18 @@ changesets_details <- get_changesets_details(changesets$id)
 
 changesets_tags <- extract_and_combine_tags(changesets_details)
 
-write.csv(changesets, file = paste0(base_path, "data/changesets.csv"),
+write.csv(changesets, file = paste0(base_path, "data/raw/changesets.csv"),
           row.names = FALSE)
 
-sf::st_write(changesets, dsn = paste0(base_path, "data/changesets.gpkg"),
+sf::st_write(changesets, dsn = paste0(base_path, "data/raw/changesets.gpkg"),
              append = FALSE)
 
 write.csv(changesets_tags,
-          file = paste0(base_path, "data/changesets_tags.csv"))
+          file = paste0(base_path, "data/raw/changesets_tags.csv"))
 
 changesets_details |>
   dplyr::select(-tags, -members) |>
-  write.csv(file = paste0(base_path, "data/changesets_details.csv"),
+  write.csv(file = paste0(base_path, "data/raw/changesets_details.csv"),
             row.names = FALSE)
 
 
@@ -46,9 +46,11 @@ wiki_contributions <- get_contributions_wiki(selected_users) |>
   as_tibble()
 
 wiki_contributions_n <- wiki_contributions |>
-  count(user)
+  count(user) |>
+  mutate(user = tolower(user)) |>
+  rename(wiki_edits = n)
 
-write.csv(wiki_contributions, paste0(base_path, "data/wiki_contributions.csv"),
+write.csv(wiki_contributions, paste0(base_path, "data/raw/wiki_contributions.csv"),
   row.names = FALSE
 )
 
@@ -61,7 +63,7 @@ users_diaries <- osm_user_details |>
 contributions_diaries <- get_contributions_diaries(users_diaries)
 
 write.csv(contributions_diaries,
-          paste0(base_path, "data/contributions_diaries.csv"),
+          paste0(base_path, "data/raw/contributions_diaries.csv"),
           row.names = FALSE
 )
 
@@ -78,6 +80,6 @@ contributions_summary <- osm_user_details |>
   left_join(wiki_contributions_n, by = "user")
 
 write.csv(contributions_summary,
-  paste0(base_path, "data/contributions_summary.csv"),
+  paste0(base_path, "data/raw/contributions_summary.csv"),
   row.names = FALSE
 )
