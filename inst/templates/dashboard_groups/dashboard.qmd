@@ -198,8 +198,10 @@ Hours spent contributing
 #| title: "User stats"
 
 contributions_summary |> 
-  select(-starts_with("date")) |> 
+  select(user, account_age, map_changesets, wiki_edits, comments, diary, map_notes, traces) |> 
   pivot_longer(-user) |> 
+  mutate(name = as.factor(name),
+         name = fct_relevel(name, "account_age", "map_changesets", "wiki_edits", "comments", "diary", "map_notes", "traces")) |> 
   ggplot(aes(x = value, y = 1, fill = name)) +
   geom_boxplot() +
   facet_wrap(~name, ncol=1, scales = "free_x")+ 
@@ -212,6 +214,7 @@ contributions_summary |>
     panel.grid= element_blank(),
     legend.position = "none"
   )
+
 ```
 
 
