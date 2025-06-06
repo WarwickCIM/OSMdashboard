@@ -21,29 +21,33 @@ categorise_keys <- function(df) {
     "traffic_signals:vibration", "bench",
     "handrail"
   )
-  amenity_keys <- c("cuisine", "opening_hours", "operator", "phone", "website")
+  amenity_keys <- c("cuisine", "opening_hours", "operator", "phone", "website", "takeaway")
   
+  health_keys <- c("hospital")
+
   highway_keys <- c(
     "access", "barrier", "bench", "bin", "bridge", "handrail", "highway", "incline", "lanes", "lit", "oneway",
     "ramp", "sac_scale", "segregated", "service", "smoothness", "tracktype", "width"
   )
-  motor_keys <- c("motor", "maxspeed", "traffic_calming", "vehicle", "direction", "lanes", "lane_markings")
+  motor_keys <- c("motor", "motorroad", "maxspeed", "traffic_calming", "vehicle", "direction", "lanes", "lane_markings")
   
-  transport_keys <- c("electrified", "gauge", "railway", "tunnel", "shoulder")
+  transport_keys <- c("electrified", "gauge", "light_rail", "NHS", "park_ride", "railway", "route", "shoulder", "tunnel")
   
-  nature_keys <- c("crop", "water", "intermittent")
+  nature_keys <- c("crop", "water", "intermittent", "leaf_type")
   
   leisure_keys <- c("sauna", "swimming_pool")
   
   qa_keys <- c("ref")
   
-  edi_keys <- c("lgbtq", "women")
+  edi_keys <- c("lgbtq", "women", "refugee")
   
   power_keys <- (c("frequency", "generator", "power", "voltage"))
   
   references_keys <- c("wikidata", "wikipedia")
   
-  boundaries_keys <- c("admin_level", "boundary", "landuse")
+  boundaries_keys <- c("admin_level", "boundary", "claimed_by", "disputed", "place", "landuse")
+
+  religion_keys <- c("denomination", "religion", "place_of_worship")
   
   df <- df |>
     dplyr::mutate(
@@ -55,34 +59,46 @@ categorise_keys <- function(df) {
         stringr::str_detect(key, "cycle|cyclability") ~ "cycling",
         stringr::str_detect(key, "heritage") ~ "heritage",
         key %in% motor_keys ~ "motor",
-        stringr::str_detect(key, "maxspeed|vehicle|direction|lanes|parking") ~ "motor",
+        stringr::str_detect(key, "maxspeed|vehicle|direction|fuel|lanes|parking") ~ "motor",
         stringr::str_detect(key, "foot|sidewalk|kerb") ~ "pedestrian",
-        stringr::str_detect(key, "tourism") ~ "tourism"
+        stringr::str_detect(key, "tourism") ~ "tourism",
+        stringr::str_detect(key, "bus|naptan|public_transport|button_operated") ~ "Public transport",
+        stringr::str_detect(key, paste(religion_keys, collapse = "|")) ~ "Religion"
       ),
       top_key = dplyr::case_when(
         stringr::str_detect(key, "addr") ~ "Addresses",
+        # Amenities
         key %in% amenity_keys ~ "Amenities",
         stringr::str_detect(key, "amenity|brand|diet|operator|shop") ~ "Amenities",
-        parent_key %in% c("care", "contact", "tourism", "heritage") ~ "Amenities",
+        parent_key %in% c("care", "contact", "tourism", "heritage", "religion") ~ "Amenities",
+        # Buildings
         stringr::str_detect(key, "roof|building|architect") ~ "Buildings",
         stringr::str_detect(key, "crossing|traffic_signals") ~ "Crossings",
         key %in% edi_keys ~ "EDI",
         stringr::str_detect(key, "name") & !stringr::str_detect(key, "housename") ~ "Names",
-        key %in% nature_keys ~ "Nature Resources",
-        stringr::str_starts(key, "natural|nature|water|river|tree|grass") ~ "Nature Resources",
+        # Natural resources
+        key %in% nature_keys ~ "Natural Resources",
+        stringr::str_starts(key, "natural|nature|water|river|tree|grass") ~ "Natural Resources",
+        # Leisure
         key %in% leisure_keys ~ "Leisure",
         stringr::str_detect(key, "leisure|sport") & !stringr::str_detect(key, "transport") ~ "Leisure",
-        stringr::str_detect(key, "bus|naptan|public_transport|button_operated") ~ "Public transport",
+        # Quality Assurance
         key %in% qa_keys ~ "Quality Assurance",
         stringr::str_starts(key, "check_date|source|survey") ~ "Quality Assurance",
+        # Streets
         key %in% highway_keys ~ "Streets",
         stringr::str_detect(parent_key, "cycling|pedestrian") ~ "Streets",
         stringr::str_detect(key, "surface|tactile_paving") ~ "Streets",
+        # Transport
         key %in% transport_keys ~ "Transport",
-        stringr::str_detect(parent_key, "motor") ~ "Transport",
+        parent_key == "Public transport" ~ "Transport",
+        stringr::str_detect(parent_key, "motor|railway") ~ "Transport",
+        stringr::str_detect(key, "railway") ~ "Transport",
         stringr::str_detect(key, paste(references_keys, collapse = "|")) ~ "External references",
         key %in% power_keys ~ "Power",
-        stringr::str_detect(key, paste(power_keys, collapse = "|")) ~ "Power"
+        stringr::str_detect(key, paste(power_keys, collapse = "|")) ~ "Power",
+        # Boundaries
+        key %in% boundaries_keys ~ "Boundaries"
       )
     )
   
