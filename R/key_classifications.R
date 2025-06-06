@@ -48,7 +48,7 @@ categorise_keys <- function(df) {
   
   qa_keys <- c("fixme", "note", "ref")
   
-  references_keys <- c("wikidata", "wikipedia")
+  references_keys <- c("mappillary", "wikidata", "wikipedia")
   
   religion_keys <- c("denomination", "religion", "place_of_worship")
   
@@ -84,6 +84,8 @@ categorise_keys <- function(df) {
         stringr::str_detect(key, "crossing|juntion|traffic_signals") ~ "Crossings",
         # EDI
         key %in% edi_keys ~ "EDI",
+        # External References
+        stringr::str_detect(key, paste(references_keys, collapse = "|")) ~ "External references",
         # Leisure
         key %in% leisure_keys ~ "Leisure",
         # Names
@@ -92,6 +94,8 @@ categorise_keys <- function(df) {
         # Natural resources
         key %in% nature_keys ~ "Natural Resources",
         stringr::str_starts(key, "natural|nature|water|river|tree|grass") ~ "Natural Resources",
+        key %in% power_keys ~ "Power",
+        stringr::str_detect(key, paste(power_keys, collapse = "|")) ~ "Power",
         # Quality Assurance
         key %in% qa_keys ~ "Quality Assurance",
         stringr::str_starts(key, "check_date|source|survey") ~ "Quality Assurance",
@@ -99,15 +103,12 @@ categorise_keys <- function(df) {
         # Streets
         key %in% highway_keys ~ "Streets",
         stringr::str_detect(parent_key, "Cycling") ~ "Streets",
-        stringr::str_detect(key, "pedestrian|surface|tactile_paving") ~ "Streets",
+        stringr::str_detect(key, "pedestrian|kerb|sidewalk|surface|tactile_paving") ~ "Streets",
         # Transport
         key %in% transport_keys ~ "Transport",
         parent_key == "Public transport" ~ "Transport",
         stringr::str_detect(parent_key, "Motor") ~ "Transport",
-        stringr::str_detect(key, "railway|traffic_|passenger") ~ "Transport",
-        stringr::str_detect(key, paste(references_keys, collapse = "|")) ~ "External references",
-        key %in% power_keys ~ "Power",
-        stringr::str_detect(key, paste(power_keys, collapse = "|")) ~ "Power"
+        stringr::str_detect(key, "railway|traffic_|passenger") ~ "Transport"
       )
     )
   
