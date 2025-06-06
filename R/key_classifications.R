@@ -21,9 +21,13 @@ categorise_keys <- function(df) {
     "traffic_signals:vibration", "bench",
     "handrail"
   )
-  amenity_keys <- c("cuisine", "opening_hours", "office", "operator", "phone", "website", "takeaway", "school")
+  amenity_keys <- c("cuisine", "opening_hours", "office", "phone", "website", "takeaway", "school")
 
   boundaries_keys <- c("admin_level", "boundary", "claimed_by", "disputed", "place", "landuse")
+
+  care_keys <- c("emergency", "clinic", "emergency", "health", "hospital", "medical", "shelter", "social_facility")
+
+  contact_keys <- c("contact", "email", "fax", "opening_hours", "phone", "website")
   
   edi_keys <- c("lgbtq", "women", "refugee", "wheelchair")
   
@@ -53,14 +57,14 @@ categorise_keys <- function(df) {
   df <- df |>
     dplyr::mutate(
       parent_key = dplyr::case_when(
-        key %in% accessibility_keys ~ "accessibility",
-        stringr::str_detect(key, "wheelchair") ~ "accessibility",
-        stringr::str_detect(key, "emergency|health|hospital|medical|shelter|social_facility") ~ "care",
-        stringr::str_detect(key, "contact|email|opening_hours|phone|website") ~ "contact",
-        stringr::str_detect(key, "cycle|cyclability") ~ "cycling",
-        stringr::str_detect(key, "heritage") ~ "heritage",
+        key %in% accessibility_keys ~ "Accessibility",
+        stringr::str_detect(key, "wheelchair") ~ "Accessibility",
+        stringr::str_detect(key, paste(care_keys, collapse = "|")) ~ "Care",
+        stringr::str_detect(key, paste(contact_keys, collapse ="|")) ~ "Contact",
+        stringr::str_detect(key, "cycle|cyclability") ~ "Cycling",
+        stringr::str_detect(key, "heritage") ~ "Heritage",
         key %in% motor_keys ~ "motor",
-        stringr::str_detect(key, "maxspeed|vehicle|direction|fuel|lanes|parking") ~ "motor",
+        stringr::str_detect(key, "maxspeed|vehicle|direction|fuel|lanes|parking") ~ "Motor",
         stringr::str_detect(key, "foot|sidewalk|kerb") ~ "pedestrian",
         stringr::str_detect(key, "tourism") ~ "tourism",
         stringr::str_detect(key, "bus|naptan|public_transport|button_operated") ~ "Public transport",
@@ -70,12 +74,12 @@ categorise_keys <- function(df) {
         stringr::str_detect(key, "addr") ~ "Addresses",
         # Amenities
         key %in% amenity_keys ~ "Amenities",
-        stringr::str_detect(key, "amenity|brand|diet|operator|shop") ~ "Amenities",
-        parent_key %in% c("care", "contact", "tourism", "heritage", "Religion") ~ "Amenities",
+        stringr::str_detect(key, "amenity|brand|diet|shop") ~ "Amenities",
+        parent_key %in% c("Care", "Contact", "Tourism", "Heritage", "Religion") ~ "Amenities",
         # Boundaries
         key %in% boundaries_keys ~ "Boundaries",
         # Buildings
-        stringr::str_detect(key, "roof|building|architect") ~ "Buildings",
+        stringr::str_detect(key, "roof|building|architect|window") ~ "Buildings",
         # Crossings
         stringr::str_detect(key, "crossing|juntion|traffic_signals") ~ "Crossings",
         # EDI
@@ -94,13 +98,13 @@ categorise_keys <- function(df) {
         stringr::str_detect(key, paste(qa_keys, collapse = "|")) ~ "Quality Assurance",
         # Streets
         key %in% highway_keys ~ "Streets",
-        stringr::str_detect(parent_key, "cycling|pedestrian") ~ "Streets",
-        stringr::str_detect(key, "surface|tactile_paving") ~ "Streets",
+        stringr::str_detect(parent_key, "Cycling") ~ "Streets",
+        stringr::str_detect(key, "pedestrian|surface|tactile_paving") ~ "Streets",
         # Transport
         key %in% transport_keys ~ "Transport",
         parent_key == "Public transport" ~ "Transport",
-        stringr::str_detect(parent_key, "motor|railway|traffic_|passenger") ~ "Transport",
-        stringr::str_detect(key, "railway") ~ "Transport",
+        stringr::str_detect(parent_key, "Motor") ~ "Transport",
+        stringr::str_detect(key, "railway|traffic_|passenger") ~ "Transport",
         stringr::str_detect(key, paste(references_keys, collapse = "|")) ~ "External references",
         key %in% power_keys ~ "Power",
         stringr::str_detect(key, paste(power_keys, collapse = "|")) ~ "Power"
