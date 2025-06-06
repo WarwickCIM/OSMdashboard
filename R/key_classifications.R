@@ -22,29 +22,29 @@ categorise_keys <- function(df) {
     "handrail"
   )
   amenity_keys <- c("cuisine", "opening_hours", "operator", "phone", "website")
-
+  
   highway_keys <- c(
     "access", "barrier", "bench", "bin", "bridge", "handrail", "highway", "incline", "lanes", "lit", "oneway",
     "ramp", "sac_scale", "segregated", "service", "smoothness", "tracktype", "width"
   )
   motor_keys <- c("motor", "maxspeed", "traffic_calming", "vehicle", "direction", "lanes", "lane_markings")
-
+  
   transport_keys <- c("electrified", "gauge", "railway", "tunnel", "shoulder")
-
+  
   nature_keys <- c("crop", "water", "intermittent")
-
+  
   leisure_keys <- c("sauna", "swimming_pool")
-
+  
   qa_keys <- c("ref")
-
+  
   edi_keys <- c("lgbtq", "women")
-
+  
   power_keys <- (c("frequency", "generator", "power", "voltage"))
-
+  
   references_keys <- c("wikidata", "wikipedia")
-
+  
   boundaries_keys <- c("admin_level", "boundary", "landuse")
-
+  
   df <- df |>
     dplyr::mutate(
       parent_key = dplyr::case_when(
@@ -79,12 +79,12 @@ categorise_keys <- function(df) {
         stringr::str_detect(parent_key, "cycling|pedestrian") ~ "Streets",
         stringr::str_detect(key, "surface|tactile_paving") ~ "Streets",
         key %in% transport_keys ~ "Transport",
-        stringr::str_detect(key, "motor") ~ "Transport",
-        stringr::str_detect(key, references_keys) ~ "External references",
+        stringr::str_detect(parent_key, "motor") ~ "Transport",
+        stringr::str_detect(key, paste(references_keys, collapse = "|")) ~ "External references",
         key %in% power_keys ~ "Power",
         stringr::str_detect(key, paste(power_keys, collapse = "|")) ~ "Power"
       )
     )
-
+  
   return(df)
 }
