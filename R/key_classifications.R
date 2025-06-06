@@ -21,7 +21,7 @@ categorise_keys <- function(df) {
     "traffic_signals:vibration", "bench",
     "handrail"
   )
-  amenity_keys <- c("cuisine", "opening_hours", "office", "operator", "phone", "website", "takeaway")
+  amenity_keys <- c("cuisine", "opening_hours", "office", "operator", "phone", "website", "takeaway", "school")
   
   health_keys <- c("hospital")
 
@@ -33,7 +33,7 @@ categorise_keys <- function(df) {
   
   transport_keys <- c("electrified", "gauge", "light_rail", "NHS", "orientation", "park_ride", "railway", "route", "shoulder", "tunnel")
   
-  nature_keys <- c("crop", "ele", "water", "intermittent", "leaf_type", "wetland")
+  nature_keys <- c("crop", "ele", "water", "intermittent", "plant", "leaf_type", "wetland", "water")
   
   leisure_keys <- c("sauna", "swimming_pool")
   
@@ -92,7 +92,7 @@ categorise_keys <- function(df) {
         # Transport
         key %in% transport_keys ~ "Transport",
         parent_key == "Public transport" ~ "Transport",
-        stringr::str_detect(parent_key, "motor|railway") ~ "Transport",
+        stringr::str_detect(parent_key, "motor|railway|traffic_") ~ "Transport",
         stringr::str_detect(key, "railway") ~ "Transport",
         stringr::str_detect(key, paste(references_keys, collapse = "|")) ~ "External references",
         key %in% power_keys ~ "Power",
