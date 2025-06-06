@@ -22,6 +22,10 @@ categorise_keys <- function(df) {
     "handrail"
   )
   amenity_keys <- c("cuisine", "opening_hours", "office", "operator", "phone", "website", "takeaway", "school")
+
+  boundaries_keys <- c("admin_level", "boundary", "claimed_by", "disputed", "place", "landuse")
+  
+  edi_keys <- c("lgbtq", "women", "refugee", "wheelchair")
   
   health_keys <- c("hospital")
 
@@ -29,26 +33,23 @@ categorise_keys <- function(df) {
     "access", "barrier", "bench", "bin", "bridge", "handrail", "highway", "incline", "lanes", "lit", "oneway",
     "ramp", "sac_scale", "segregated", "service", "smoothness", "tracktype", "width"
   )
-  motor_keys <- c("hov", "motor", "motorroad", "maxspeed", "traffic_calming", "vehicle", "direction", "lanes", "lane_markings")
-  
-  transport_keys <- c("electrified", "gauge", "light_rail", "NHS", "orientation", "park_ride", "railway", "route", "shoulder", "tunnel")
-  
-  nature_keys <- c("crop", "ele", "water", "intermittent", "plant", "leaf_type", "wetland", "water")
   
   leisure_keys <- c("sauna", "swimming_pool")
   
-  qa_keys <- c("fixme", "ref")
+  motor_keys <- c("hov", "motor", "motorroad", "maxspeed", "traffic_calming", "vehicle", "direction", "lanes", "lane_markings")
   
-  edi_keys <- c("lgbtq", "women", "refugee", "wheelchair")
+  nature_keys <- c("crop", "ele", "water", "intermittent", "plant", "leaf_type", "wetland", "water")
   
-  power_keys <- (c("frequency", "generator", "power", "voltage"))
+  power_keys <- c("cables", "frequency", "generator", "power", "voltage", "rotor")
+  
+  qa_keys <- c("fixme", "note", "ref")
   
   references_keys <- c("wikidata", "wikipedia")
   
-  boundaries_keys <- c("admin_level", "boundary", "claimed_by", "disputed", "place", "landuse")
-
   religion_keys <- c("denomination", "religion", "place_of_worship")
   
+  transport_keys <- c("electrified", "gauge", "light_rail", "NHS", "orientation", "park_ride", "railway", "route", "shoulder", "tunnel")
+    
   df <- df |>
     dplyr::mutate(
       parent_key = dplyr::case_when(
@@ -71,20 +72,26 @@ categorise_keys <- function(df) {
         key %in% amenity_keys ~ "Amenities",
         stringr::str_detect(key, "amenity|brand|diet|operator|shop") ~ "Amenities",
         parent_key %in% c("care", "contact", "tourism", "heritage", "Religion") ~ "Amenities",
+        # Boundaries
+        key %in% boundaries_keys ~ "Boundaries",
         # Buildings
         stringr::str_detect(key, "roof|building|architect") ~ "Buildings",
-        stringr::str_detect(key, "crossing|traffic_signals") ~ "Crossings",
+        # Crossings
+        stringr::str_detect(key, "crossing|juntion|traffic_signals") ~ "Crossings",
+        # EDI
         key %in% edi_keys ~ "EDI",
+        # Leisure
+        key %in% leisure_keys ~ "Leisure",
+        # Names
         stringr::str_detect(key, "name") & !stringr::str_detect(key, "housename") ~ "Names",
+        stringr::str_detect(key, "leisure|sport") & !stringr::str_detect(key, "transport") ~ "Leisure",
         # Natural resources
         key %in% nature_keys ~ "Natural Resources",
         stringr::str_starts(key, "natural|nature|water|river|tree|grass") ~ "Natural Resources",
-        # Leisure
-        key %in% leisure_keys ~ "Leisure",
-        stringr::str_detect(key, "leisure|sport") & !stringr::str_detect(key, "transport") ~ "Leisure",
         # Quality Assurance
         key %in% qa_keys ~ "Quality Assurance",
         stringr::str_starts(key, "check_date|source|survey") ~ "Quality Assurance",
+        stringr::str_detect(key, paste(qa_keys, collapse = "|")) ~ "Quality Assurance",
         # Streets
         key %in% highway_keys ~ "Streets",
         stringr::str_detect(parent_key, "cycling|pedestrian") ~ "Streets",
@@ -92,13 +99,11 @@ categorise_keys <- function(df) {
         # Transport
         key %in% transport_keys ~ "Transport",
         parent_key == "Public transport" ~ "Transport",
-        stringr::str_detect(parent_key, "motor|railway|traffic_") ~ "Transport",
+        stringr::str_detect(parent_key, "motor|railway|traffic_|passenger") ~ "Transport",
         stringr::str_detect(key, "railway") ~ "Transport",
         stringr::str_detect(key, paste(references_keys, collapse = "|")) ~ "External references",
         key %in% power_keys ~ "Power",
-        stringr::str_detect(key, paste(power_keys, collapse = "|")) ~ "Power",
-        # Boundaries
-        key %in% boundaries_keys ~ "Boundaries"
+        stringr::str_detect(key, paste(power_keys, collapse = "|")) ~ "Power"
       )
     )
   
