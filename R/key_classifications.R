@@ -70,7 +70,7 @@ categorise_keys <- function(df) {
         # Amenities
         key %in% amenity_keys ~ "Amenities",
         stringr::str_detect(key, "amenity|brand|diet|operator|shop") ~ "Amenities",
-        parent_key %in% c("care", "contact", "tourism", "heritage", "religion") ~ "Amenities",
+        parent_key %in% c("care", "contact", "tourism", "heritage", "Religion") ~ "Amenities",
         # Buildings
         stringr::str_detect(key, "roof|building|architect") ~ "Buildings",
         stringr::str_detect(key, "crossing|traffic_signals") ~ "Crossings",
