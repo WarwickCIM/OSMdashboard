@@ -29,13 +29,21 @@ categorise_keys <- function(df) {
   )
   motor_keys <- c("motor", "maxspeed", "traffic_calming", "vehicle", "direction", "lanes", "lane_markings")
 
-  nature_keys <- c("crop", "water")
+  transport_keys <- c("electrified", "gauge", "railway", "tunnel", "shoulder")
+
+  nature_keys <- c("crop", "water", "intermittent")
 
   leisure_keys <- c("sauna", "swimming_pool")
 
   qa_keys <- c("ref")
 
   edi_keys <- c("lgbtq", "women")
+
+  power_keys <- (c("frequency", "generator", "power", "voltage"))
+
+  references_keys <- c("wikidata", "wikipedia")
+
+  boundaries_keys <- c("admin_level", "boundary", "landuse")
 
   df <- df |>
     dplyr::mutate(
@@ -68,8 +76,13 @@ categorise_keys <- function(df) {
         key %in% qa_keys ~ "Quality Assurance",
         stringr::str_starts(key, "check_date|source|survey") ~ "Quality Assurance",
         key %in% highway_keys ~ "Streets",
-        stringr::str_detect(parent_key, "cycling|motor|pedestrian") ~ "Streets",
-        stringr::str_detect(key, "surface|tactile_paving") ~ "Streets"
+        stringr::str_detect(parent_key, "cycling|pedestrian") ~ "Streets",
+        stringr::str_detect(key, "surface|tactile_paving") ~ "Streets",
+        key %in% transport_keys ~ "Transport",
+        stringr::str_detect(key, "motor") ~ "Transport",
+        stringr::str_detect(key, references_keys) ~ "External references",
+        key %in% power_keys ~ "Power",
+        stringr::str_detect(key, paste(power_keys, collapse = "|")) ~ "Power"
       )
     )
 
