@@ -21,7 +21,7 @@ categorise_keys <- function(df) {
     "traffic_signals:vibration", "bench",
     "handrail"
   )
-  amenity_keys <- c("cuisine", "opening_hours", "operator", "phone", "website", "takeaway")
+  amenity_keys <- c("cuisine", "opening_hours", "office", "operator", "phone", "website", "takeaway")
   
   health_keys <- c("hospital")
 
@@ -29,17 +29,17 @@ categorise_keys <- function(df) {
     "access", "barrier", "bench", "bin", "bridge", "handrail", "highway", "incline", "lanes", "lit", "oneway",
     "ramp", "sac_scale", "segregated", "service", "smoothness", "tracktype", "width"
   )
-  motor_keys <- c("motor", "motorroad", "maxspeed", "traffic_calming", "vehicle", "direction", "lanes", "lane_markings")
+  motor_keys <- c("hov", "motor", "motorroad", "maxspeed", "traffic_calming", "vehicle", "direction", "lanes", "lane_markings")
   
-  transport_keys <- c("electrified", "gauge", "light_rail", "NHS", "park_ride", "railway", "route", "shoulder", "tunnel")
+  transport_keys <- c("electrified", "gauge", "light_rail", "NHS", "orientation", "park_ride", "railway", "route", "shoulder", "tunnel")
   
-  nature_keys <- c("crop", "water", "intermittent", "leaf_type")
+  nature_keys <- c("crop", "ele", "water", "intermittent", "leaf_type", "wetland")
   
   leisure_keys <- c("sauna", "swimming_pool")
   
-  qa_keys <- c("ref")
+  qa_keys <- c("fixme", "ref")
   
-  edi_keys <- c("lgbtq", "women", "refugee")
+  edi_keys <- c("lgbtq", "women", "refugee", "wheelchair")
   
   power_keys <- (c("frequency", "generator", "power", "voltage"))
   
