@@ -46,12 +46,12 @@ You can easily create a dashboard displaying group contributions by:
 4. Run `data_retrieval.R` to retrieve all the data needed for the dashboard.
 5. Render `dashboard.qmd` to generate the dashboard. To do so, you will need quarto installed (see instructions) and then either:
   1. Run the following command in the terminal from the folder:
+  
+  ```bash
+  quarto render dashboard.qmd
+  ```
 
-    ```bash
-    quarto render dashboard.qmd
-    ```
-
-  2. From RStudio click on render
+  3. From RStudio click on render
 
 ## Contributors
 
