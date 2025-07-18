@@ -15,7 +15,7 @@ public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostat
 > uncomplete features, frequent breaks, uncomplete documentation and changes in the API.
 
 
-The goal of OSMdashboard is to create interactive dashboards that visualise OSM-data locally and just by filling a csv file.
+The goal of OSMdashboard is to create interactive dashboards that visualise OSM-data locally and anonymously, just by filling a csv file.
 
 ![Dashboard screenshot](man/figures/dashboard-screenshot.png)
 
@@ -36,24 +36,26 @@ devtools::install_github("WarwickCIM/OSMdashboard")
 You can easily create a dashboard displaying group contributions by:
 
 1. Create a template running the code below:
+
     ``` r
     # Create a template
     OSMdashboard::create_dashboard("my_folder")
-
     ```
 2. Edit `data/group_info.csv` and replace the default values, keeping the column names.
 3. Edit `data/group_users.csv` and replace `<demo_user>` with an actual OSM username. Add as many rows as needed, but keep the column name. New columns will be ignored.
 4. Run `data_retrieval.R` to retrieve all the data needed for the dashboard.
 5. Render `dashboard.qmd` to generate the dashboard. To do so, you will need quarto installed (see instructions) and then either:
   1. Run the following command in the terminal from the folder:
+
     ```bash
     quarto render dashboard.qmd
     ```
+
   2. From RStudio click on render
 
 ## Contributors
 
-This project welcomes any type of contributions, not just coding. It follows the [all-contributors](https://allcontributors.org) specification as a way to recognise that, while addressing Katherine d'Ignazio and Lauren F Klein's [Principle #7 of Data Feminism is to Make Labor Visible](https://data-feminism.mitpress.mit.edu/pub/0vgzaln4/release/3):
+This project welcomes any type of contributions, not just coding. It follows the [all-contributors](https://allcontributors.org) specification as a way to recognise that, while addressing Katherine d'Ignazio and Lauren F Klein's [principle #7 of Data Feminism: Make Labor Visible](https://data-feminism.mitpress.mit.edu/pub/0vgzaln4/release/3):
 
 > **Make labor visible:** “Starting with questions of data provenance helps to credit the bodies that make visualization possible – the bodies that collect the data, that digitize them, that clean them, and that maintain them. However, most data provenance research focuses on technical rather than human points of origination and integration [66]. With its emphasis on under-valued forms of labor, a feminist approach to visualization can help to render visible the bodies that shape and care for data at every stage of the process. This relates to the concept of provenance rhetoric [44] in which authors of narrative visualizations cite data sources and methods which may help build credibility with the audience.” (Ignazio and Klein, 2016, p. 3)
 
