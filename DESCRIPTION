@@ -30,7 +30,7 @@ Authors@R: c(
     ),
     person(
       "Hazel", "Cyril",
-      role = "aut",
+      role = "ctb",
       comment = c("As a Research Assistant, Hazel contributed to improving the dashboards' data visualisations, with an emphasis on accessibility.")
     ),
     person(
