@@ -75,6 +75,9 @@ contributions_summary <- osm_user_details |>
     user = tolower(user),
     account_age = as.integer(
       difftime(today(), date_creation, units = "days")
+    ) / 365,
+    map_activity_age = as.integer(
+      difftime(date_last_map_edit, date_creation, units = "days")
     ) / 365
   ) |>
   left_join(wiki_contributions_n, by = "user")

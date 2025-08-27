@@ -40,6 +40,7 @@ library(sf)
 library(stringr)
 library(tidyr)
 library(treemapify)
+library(wordcloud)
 
 # GGplot configs ---------------------------------------------------------------------------
 
@@ -52,6 +53,37 @@ library(treemapify)
 #     legend.position = "top"
 #   )
 # )
+
+# Modified - OSM_Aug_RA
+# heatmap theme for Changeset and WikiEdit distribution
+theme_heatmap <- theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    plot.title = element_text(
+      family = "Arial",
+      face = "bold",
+      size = 16,
+      hjust = 0.5
+    ),
+    axis.text.x = element_text(family = "Arial", size = 8, 
+                               angle = 45, vjust = 0.5, hjust=1),
+    axis.text.y = element_text(family = "Arial", size = 8),
+    legend.position = "none"
+  )
+
+theme_user_stats <- theme_minimal() +
+  theme(panel.grid = element_blank(),
+        axis.line = element_line(colour = 'grey20', size = 0.5),
+        legend.position = "none",
+        plot.margin = margin(5,20,5,20))
+
+## Colour Scheme: https://colorbrewer2.org/#type=diverging&scheme=PuOr&n=4
+
+# colours for marks
+colour_primary_mark <- "#e66101"
+colour_secondary_mark <- "#5e3c99"
+colour_tertiary_mark <- "#2d004b"
+colour_fill <- "#fdb863"
 
 ```
 
@@ -193,27 +225,120 @@ Hours spent contributing
 
 ## Some summaries
 
+### User Stats {.tabset}
 
 ```{r}
-#| title: "User stats"
+#| title: "Account Age"
 
-contributions_summary |> 
-  select(user, account_age, map_changesets, wiki_edits, comments, diary, map_notes, traces) |> 
-  pivot_longer(-user) |> 
-  mutate(name = as.factor(name),
-         name = fct_relevel(name, "account_age", "map_changesets", "wiki_edits", "comments", "diary", "map_notes", "traces")) |> 
-  ggplot(aes(x = value, y = 1, fill = name)) +
-  geom_boxplot() +
-  facet_wrap(~name, ncol=1, scales = "free_x")+ 
-  labs(y = "", x ="") +
-  # theme_minimal() +
-  theme(
-    axis.title.y=element_blank(),
-    axis.ticks.y = element_blank(),
-    axis.text.y = element_blank(),
-    panel.grid= element_blank(),
-    legend.position = "none"
-  )
+# Modified - OSM_Aug_RA
+# contributions_summary |> 
+#   select(user, account_age, map_changesets, wiki_edits, comments, diary, map_notes, traces) |> 
+#   pivot_longer(-user) |> 
+#   mutate(name = as.factor(name),
+#          name = fct_relevel(name, "account_age", "map_changesets", "wiki_edits", "comments", "diary", "map_notes", "traces")) |> 
+#   ggplot(aes(x = value, y = 1, fill = name)) +
+#   geom_boxplot() +
+#   facet_wrap(~name, ncol=1, scales = "free_x")+ 
+#   labs(y = "", x ="") +
+#   # theme_minimal() +
+#   theme(
+#     axis.title.y=element_blank(),
+#     axis.ticks.y = element_blank(),
+#     axis.text.y = element_blank(),
+#     panel.grid= element_blank(),
+#     legend.position = "none"
+#   )
+
+account_distribution <- contributions_summary |>
+  ggplot(aes(x = account_age)) +
+  geom_histogram(
+    breaks = seq(0, 20, by = 5),
+    color = colour_primary_mark,
+    fill = colour_fill
+  ) +
+  geom_vline(xintercept = mean(contributions_summary$account_age),              color = colour_secondary_mark,linetype = 2, lwd = 0.7) +
+  # annotation for mean-intercept cannot be labelled:
+  #   geom_GeomLabel() has yet to be implemented in plotly.
+  #annotate("label", x = mean(contributions_summary$account_age), y = 2, 
+  #         label = "Mean Age of Accounts", angle = 90) +
+  scale_x_continuous(breaks = seq(0, 20, by = 5)) +
+  labs(y = "Number of Accounts", x = "Age of Accounts (in years)") +
+  theme_user_stats
+
+ggplotly(account_distribution)
+
+```
+
+```{r}
+#| title: "Map Activity"
+
+map_activity <- contributions_summary |>
+  ggplot() +
+  geom_point(aes(x = map_activity_age, y = map_changesets),
+             color = colour_primary_mark
+  ) +
+  geom_point(aes(x = map_activity_age, y = map_notes ), color = colour_secondary_mark) +
+  geom_hline(yintercept = mean(contributions_summary$map_changesets), 
+             color = colour_tertiary_mark, linetype = 2, lwd = 0.7) +
+  annotate("text", x = 7, y = mean(contributions_summary$map_changesets) + 2500, label = "Average Number of Map Changes", hjust = 0, size = 3)+
+  labs(y = "Map Changes and Notes", x = "Map Activity (in years)") +
+  theme(panel.grid = element_blank(),
+        panel.background = element_blank(),
+        legend.position = "right",
+        legend.key.spacing.x = unit(10, "pt"),
+        legend.key.spacing.y = unit(20, "pt"),
+        legend.text = element_text(margin = margin(l = 0)),
+        legend.title = element_text(margin = margin(b = 20)))
+
+ggplotly(map_activity)
+
+```
+
+```{r}
+#| title: "Comments Logged"
+
+comment_activity <- contributions_summary |>
+  ggplot(aes(x = account_age, y = comments)) +
+  geom_point(color=colour_primary_mark) +
+  geom_hline(yintercept = mean(contributions_summary$comments), color = colour_tertiary_mark, linetype = 2, lwd = 0.5) +
+  annotate("text", x = 7, y = mean(contributions_summary$comments) + 25, label = "Average Number of Comments", hjust = 0, size = 3)+
+  labs(y = "Comments Written", x = "Age of Accounts (in years)") +
+  theme(panel.grid = element_blank(),
+        legend.position = "none",
+         plot.margin = margin(5,10,5,10))
+
+ggplotly(comment_activity)
+
+```
+
+```{r}
+#| title: "Diary Activity"
+
+diary_activity <- contributions_summary |>
+  ggplot(aes(x = account_age, y = diary)) +
+  geom_point(color=colour_primary_mark) +
+  geom_hline(yintercept = mean(contributions_summary$diary), color = colour_tertiary_mark, linetype = 2, lwd = 0.5) +
+  annotate("text", x = 7, y = mean(contributions_summary$diary) + 5, label = "Average Number of Diary Entries", hjust = 0, size = 3)+
+  labs(y = "Diary Entries Written", x = "Age of Account (in years)") +
+  theme_user_stats
+
+ggplotly(diary_activity)
+
+```
+
+```{r}
+#| title: "Trace Activity"
+
+trace_activity <- contributions_summary |>
+  ggplot(aes(x = account_age, y = traces)) +
+  geom_point(color = colour_primary_mark
+  ) +
+  geom_hline(yintercept = mean(contributions_summary$traces), color = colour_tertiary_mark, linetype = 2, lwd = 0.5) +
+  annotate("text", x = 7, y = mean(contributions_summary$comments) + 25, label = "Average Number of Traces", hjust = 0, size = 3)+
+  labs(y = "Traces Created", x = "Age of Account (in years)") +
+  theme_user_stats
+
+ggplotly(trace_activity)
 
 ```
 
@@ -291,35 +416,72 @@ leaflet(options = leafletOptions(maxZoom = 12)) |>
 ```{r}
 #| title: When do they contribute?
 
-changesets_day_time <- changesets |> 
-  select(created_at) |> 
-  mutate(date = created_at,
-         weekday = weekdays(date),
-         weekday = forcats::fct_relevel(
-           as.factor(weekday), 
-           "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"),
-         time = hms::as_hms(date),
-         hour = hour(time)) |> 
-  count(weekday, hour) |> 
-  # Converting to wide to generate NAs
-  pivot_wider(names_from = hour, values_from = n) |>
-  pivot_longer(-weekday, names_to = "hour", values_to = "n") |> 
-  mutate(hour = as.numeric(hour)) 
-  # mutate(n = replace_na(n, 0))
+# Modified - OSM_Aug_RA
+# changesets_day_time <- changesets |> 
+#   select(created_at) |> 
+#   mutate(date = created_at,
+#          weekday = weekdays(date),
+#          weekday = forcats::fct_relevel(
+#            as.factor(weekday), 
+#            "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"),
+#          time = hms::as_hms(date),
+#          hour = hour(time)) |> 
+#   count(weekday, hour) |> 
+#   # Converting to wide to generate NAs
+#   pivot_wider(names_from = hour, values_from = n) |>
+#   pivot_longer(-weekday, names_to = "hour", values_to = "n") |> 
+#   mutate(hour = as.numeric(hour)) 
+# # mutate(n = replace_na(n, 0))
+# 
+# heatmap <- ggplot(changesets_day_time, aes(hour, weekday, fill= n)) + 
+#   geom_tile(show.legend = FALSE) +
+#   labs(y = NULL) + 
+#   scale_fill_distiller(palette = "Greens", direction = 1) +
+#   # scale_x_continuous(position = "top")  + # Does not work with plotly!
+#   theme_minimal() 
+# # theme(panel.background = element_rect(fill = 'lightgrey'),
+# #       # panel.grid.minor = element_line(color = 'white', size = 2)
+# #       )
+# 
+# heatmap_interactive <- ggplotly(heatmap)
+# 
+# heatmap_interactive
 
-heatmap <- ggplot(changesets_day_time, aes(hour, weekday, fill= n)) + 
-  geom_tile(show.legend = FALSE) +
-  labs(y = NULL) + 
-  scale_fill_distiller(palette = "Greens", direction = 1) +
-  # scale_x_continuous(position = "top")  + # Does not work with plotly!
-  theme_minimal() 
-  # theme(panel.background = element_rect(fill = 'lightgrey'),
-  #       # panel.grid.minor = element_line(color = 'white', size = 2)
-  #       )
+changesets_day_time <- changesets |>
+  select(created_at) |>
+  mutate(
+    date = created_at,
+    month = ordered(month(date), labels = month.abb),
+    weekday = weekdays(date),
+    weekday = forcats::fct_relevel(
+      as.factor(weekday),
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday"
+    )
+  ) |>   count(month, weekday)
 
-heatmap_interactive <- ggplotly(heatmap)
+changeset_heatmap <-
+  ggplot(changesets_day_time, aes(month, weekday, fill = n)) +
+  geom_tile() +
+  labs(x = NULL, y = NULL) +
+  scale_fill_gradient2(
+    low = "#ffffff",
+    mid = "#d8daeb",
+    high = "#2d004b",
+    name = "Number of Changes"
+  ) +
+  scale_y_discrete(limits = rev) +
+  #coord_fixed() +
+  theme_heatmap
 
-heatmap_interactive
+changeset_heatmap_interactive <- ggplotly(changeset_heatmap)
+
+changeset_heatmap_interactive
 
 ```
 
@@ -411,23 +573,59 @@ plot_ly(
 #| label: hashtags-count2
 # TODO: see how to reuse code.
 
-changesets |> 
-  select(id, hashtags) |> 
-  filter(!is.na(hashtags)) |> 
-  # mutate(hashtags = str_remove_all(hashtags, "#")) |> 
-  separate_longer_delim(hashtags, ";") |> 
-  count(hashtags) |> 
+# Modified - OSM_Aug_RA
+# changesets |> 
+#   select(id, hashtags) |> 
+#   filter(!is.na(hashtags)) |> 
+#   # mutate(hashtags = str_remove_all(hashtags, "#")) |> 
+#   separate_longer_delim(hashtags, ";") |> 
+#   count(hashtags) |> 
+#   mutate(hashtags = fct_reorder(hashtags, n),
+#          hashtags = fct_lump_n(hashtags, 5)) |> 
+#   ggplot(aes(x = n, y = hashtags, label = n)) +
+#   geom_bar(stat="identity") +
+#   geom_text(color = "white", hjust = 1.2) +
+#   labs(x = NULL, y = NULL) +
+#   theme_minimal() +
+#   theme(panel.grid= element_blank(),
+#         axis.text.x=element_blank(),
+#         axis.ticks.x = element_blank())
+
+set.seed(42)
+
+# wordcloud2 displays words randomly. Most frequent words tend to get
+# missed out. Sorting data in decreasing order of word frequency to avoid this.
+# https://stackoverflow.com/questions/41654007/r-wordcloud2-does-not-always-render-the-most-frequent-words
+word_corpus <- changesets |>
+  select(id, hashtags) |>
+  filter(!is.na(hashtags)) |>
+  # mutate(hashtags = str_remove_all(hashtags, "#")) |>
+  separate_longer_delim(hashtags, ";") |>
+  count(hashtags) |>
   mutate(hashtags = fct_reorder(hashtags, n),
-         hashtags = fct_lump_n(hashtags, 5)) |> 
-  ggplot(aes(x = n, y = hashtags, label = n)) +
-  geom_bar(stat="identity") +
-  geom_text(color = "white", hjust = 1.2) +
-  labs(x = NULL, y = NULL) +
-  theme_minimal() +
-  theme(panel.grid= element_blank(),
-        axis.text.x=element_blank(),
-        axis.ticks.x = element_blank())
+         hashtags = fct_lump_n(hashtags, 5)) |>
+  arrange(desc(n))
+
+# wordcloud2 does not work well with Quarto or Markdown
+# wordcloud2::wordcloud2(
+#   data = word_corpus,
+#   minRotation = 0,
+#   maxRotation = 0,
+#   size = .3,
+#   fontFamily = "Arial",
+#   backgroundColor = "white",
+#   color = rep_len(c(colour_primary_mark, colour_tertiary_mark), length.out = nrow(word_corpus))
+# )
+
+# smaller scale helps with printing all words in the corpus.
+wordcloud(words = word_corpus$hashtags, 
+          freq = word_corpus$n, 
+          min.freq = 1, 
+          random.order=FALSE, 
+          colors=brewer.pal(4, "PuOr"),
+          scale=c(2,0.5)) 
 ```
+
 
 
 ```{r}
@@ -665,35 +863,76 @@ wiki_contributions |>
 ```{r}
 #| title: When do they contribute?
 
-wiki_edits_day_time <- wiki_contributions |> 
-  select(timestamp) |> 
-  mutate(date = ymd_hms(timestamp),
-         weekday = weekdays(date),
-         weekday = forcats::fct_relevel(
-           as.factor(weekday), 
-           "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"),
-         time = hms::as_hms(date),
-         hour = hour(time)) |> 
-  count(weekday, hour) |> 
-  # Converting to wide to generate NAs
-  pivot_wider(names_from = hour, values_from = n) |>
-  pivot_longer(-weekday, names_to = "hour", values_to = "n") |> 
-  mutate(hour = as.numeric(hour)) 
-  # mutate(n = replace_na(n, 0))
+# Modified - OSM_Aug_RA
+# wiki_edits_day_time <- wiki_contributions |> 
+#   select(timestamp) |> 
+#   mutate(date = ymd_hms(timestamp),
+#          weekday = weekdays(date),
+#          weekday = forcats::fct_relevel(
+#            as.factor(weekday), 
+#            "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"),
+#          time = hms::as_hms(date),
+#          hour = hour(time)) |> 
+#   count(weekday, hour) |> 
+#   # Converting to wide to generate NAs
+#   pivot_wider(names_from = hour, values_from = n) |>
+#   pivot_longer(-weekday, names_to = "hour", values_to = "n") |> 
+#   mutate(hour = as.numeric(hour)) 
+# # mutate(n = replace_na(n, 0))
+# 
+# heatmap <- ggplot(wiki_edits_day_time, aes(hour, weekday, fill= n)) + 
+#   geom_tile(show.legend = FALSE) +
+#   labs(y = NULL) + 
+#   scale_fill_distiller(palette = "Blues", direction = 1) +
+#   # scale_x_continuous(position = "top")  + # Does not work with plotly!
+#   theme_minimal() 
+# # theme(panel.background = element_rect(fill = 'lightgrey'),
+# #       # panel.grid.minor = element_line(color = 'white', size = 2)
+# #       )
+# 
+# heatmap_interactive <- ggplotly(heatmap)
+# 
+# heatmap_interactive
 
-heatmap <- ggplot(wiki_edits_day_time, aes(hour, weekday, fill= n)) + 
-  geom_tile(show.legend = FALSE) +
-  labs(y = NULL) + 
-  scale_fill_distiller(palette = "Blues", direction = 1) +
-  # scale_x_continuous(position = "top")  + # Does not work with plotly!
-  theme_minimal() 
-  # theme(panel.background = element_rect(fill = 'lightgrey'),
-  #       # panel.grid.minor = element_line(color = 'white', size = 2)
-  #       )
+wiki_edits_day_time <- wiki_contributions |>
+  select(timestamp) |>
+  mutate(
+    date = ymd_hms(timestamp),
+    month = ordered(month(date), labels = month.abb),
+    weekday = weekdays(date),
+    weekday = forcats::fct_relevel(
+      as.factor(weekday),
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday"
+    )
+  ) |>   count(month, weekday)
 
-heatmap_interactive <- ggplotly(heatmap)
 
-heatmap_interactive
+# plotly.js does not (yet) support horizontal legend items, hence legend is
+# vertical on the side
+wiki_heatmap <-
+  ggplot(wiki_edits_day_time, aes(month, weekday, fill = n)) +
+  geom_tile() +
+  # subtitle not working as expected
+  labs(x = NULL, y = NULL) +
+  scale_fill_gradient2(
+    low = "#ffffff",
+    mid = "#d8daeb",
+    high = "#2d004b",
+    name = "Number of Edits"
+  ) +
+  scale_y_discrete(limits = rev) +
+  #coord_fixed() +
+  theme_heatmap
+
+wiki_heatmap_interactive <- ggplotly(wiki_heatmap)
+
+wiki_heatmap_interactive
 
 ```
 
