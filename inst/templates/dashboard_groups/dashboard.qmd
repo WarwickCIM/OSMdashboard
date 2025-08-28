@@ -42,7 +42,7 @@ library(tidyr)
 library(treemapify)
 library(wordcloud)
 
-# GGplot configs ---------------------------------------------------------------------------
+# GGplot configs --------------------------------------------------------------
 
 # theme_set(
 #   theme_minimal(
@@ -54,8 +54,7 @@ library(wordcloud)
 #   )
 # )
 
-# Modified - OSM_Aug_RA
-# heatmap theme for Changeset and WikiEdit distribution
+# Heatmap theme for Changeset and WikiEdit distribution
 theme_heatmap <- theme_minimal() +
   theme(
     panel.grid = element_blank(),
@@ -65,8 +64,8 @@ theme_heatmap <- theme_minimal() +
       size = 16,
       hjust = 0.5
     ),
-    axis.text.x = element_text(family = "Arial", size = 8, 
-                               angle = 45, vjust = 0.5, hjust=1),
+    axis.text.x = element_text(family = "Arial", size = 8,
+                               angle = 45, vjust = 0.5, hjust = 1),
     axis.text.y = element_text(family = "Arial", size = 8),
     legend.position = "none"
   )
@@ -79,7 +78,7 @@ theme_user_stats <- theme_minimal() +
 
 ## Colour Scheme: https://colorbrewer2.org/#type=diverging&scheme=PuOr&n=4
 
-# colours for marks
+# Colours for marks
 colour_primary_mark <- "#e66101"
 colour_secondary_mark <- "#5e3c99"
 colour_tertiary_mark <- "#2d004b"
@@ -221,7 +220,7 @@ contributions_summary |>
   nrow()
 ```
 
-Hours spent contributing
+Hours spent contributing (estimate based on time x changesets x features + time * written words + time * delete words + time for discussion + time for ...)
 
 ## Some summaries
 
@@ -230,115 +229,167 @@ Hours spent contributing
 ```{r}
 #| title: "Account Age"
 
-# Modified - OSM_Aug_RA
-# contributions_summary |> 
-#   select(user, account_age, map_changesets, wiki_edits, comments, diary, map_notes, traces) |> 
-#   pivot_longer(-user) |> 
-#   mutate(name = as.factor(name),
-#          name = fct_relevel(name, "account_age", "map_changesets", "wiki_edits", "comments", "diary", "map_notes", "traces")) |> 
-#   ggplot(aes(x = value, y = 1, fill = name)) +
-#   geom_boxplot() +
-#   facet_wrap(~name, ncol=1, scales = "free_x")+ 
-#   labs(y = "", x ="") +
-#   # theme_minimal() +
-#   theme(
-#     axis.title.y=element_blank(),
-#     axis.ticks.y = element_blank(),
-#     axis.text.y = element_blank(),
-#     panel.grid= element_blank(),
-#     legend.position = "none"
-#   )
-
-account_distribution <- contributions_summary |>
+hist_account_age <- contributions_summary |>
   ggplot(aes(x = account_age)) +
   geom_histogram(
-    breaks = seq(0, 20, by = 5),
+    breaks = seq(0, 20, by = 2),
     color = colour_primary_mark,
     fill = colour_fill
   ) +
-  geom_vline(xintercept = mean(contributions_summary$account_age),              color = colour_secondary_mark,linetype = 2, lwd = 0.7) +
-  # annotation for mean-intercept cannot be labelled:
-  #   geom_GeomLabel() has yet to be implemented in plotly.
-  #annotate("label", x = mean(contributions_summary$account_age), y = 2, 
-  #         label = "Mean Age of Accounts", angle = 90) +
+  geom_vline(
+    xintercept = mean(contributions_summary$account_age), 
+    color = colour_secondary_mark, 
+    linetype = 2, 
+    lwd = 0.7
+  ) + 
+  annotate(
+    "text", 
+    x = mean(contributions_summary$account_age), 
+    y = 3, 
+    label = paste("Mean:", round(mean(contributions_summary$account_age), 2)),
+    color = colour_secondary_mark, 
+    fontface = "bold"
+  ) + 
   scale_x_continuous(breaks = seq(0, 20, by = 5)) +
   labs(y = "Number of Accounts", x = "Age of Accounts (in years)") +
   theme_user_stats
 
-ggplotly(account_distribution)
+ggplotly(hist_account_age)
 
 ```
 
-```{r}
-#| title: "Map Activity"
 
-map_activity <- contributions_summary |>
-  ggplot() +
-  geom_point(aes(x = map_activity_age, y = map_changesets),
-             color = colour_primary_mark
+```{r}
+#| title: "Map changesets"
+
+hist_map_changesets <- contributions_summary |>
+  ggplot(aes(x = map_changesets)) +
+  geom_histogram(
+    # breaks = seq(0, max(contributions_summary), by = 2),
+    color = colour_primary_mark,
+    fill = colour_fill
   ) +
-  geom_point(aes(x = map_activity_age, y = map_notes ), color = colour_secondary_mark) +
-  geom_hline(yintercept = mean(contributions_summary$map_changesets), 
-             color = colour_tertiary_mark, linetype = 2, lwd = 0.7) +
-  annotate("text", x = 7, y = mean(contributions_summary$map_changesets) + 2500, label = "Average Number of Map Changes", hjust = 0, size = 3)+
-  labs(y = "Map Changes and Notes", x = "Map Activity (in years)") +
-  theme(panel.grid = element_blank(),
-        panel.background = element_blank(),
-        legend.position = "right",
-        legend.key.spacing.x = unit(10, "pt"),
-        legend.key.spacing.y = unit(20, "pt"),
-        legend.text = element_text(margin = margin(l = 0)),
-        legend.title = element_text(margin = margin(b = 20)))
-
-ggplotly(map_activity)
-
-```
-
-```{r}
-#| title: "Comments Logged"
-
-comment_activity <- contributions_summary |>
-  ggplot(aes(x = account_age, y = comments)) +
-  geom_point(color=colour_primary_mark) +
-  geom_hline(yintercept = mean(contributions_summary$comments), color = colour_tertiary_mark, linetype = 2, lwd = 0.5) +
-  annotate("text", x = 7, y = mean(contributions_summary$comments) + 25, label = "Average Number of Comments", hjust = 0, size = 3)+
-  labs(y = "Comments Written", x = "Age of Accounts (in years)") +
-  theme(panel.grid = element_blank(),
-        legend.position = "none",
-         plot.margin = margin(5,10,5,10))
-
-ggplotly(comment_activity)
-
-```
-
-```{r}
-#| title: "Diary Activity"
-
-diary_activity <- contributions_summary |>
-  ggplot(aes(x = account_age, y = diary)) +
-  geom_point(color=colour_primary_mark) +
-  geom_hline(yintercept = mean(contributions_summary$diary), color = colour_tertiary_mark, linetype = 2, lwd = 0.5) +
-  annotate("text", x = 7, y = mean(contributions_summary$diary) + 5, label = "Average Number of Diary Entries", hjust = 0, size = 3)+
-  labs(y = "Diary Entries Written", x = "Age of Account (in years)") +
+  geom_vline(
+    xintercept = mean(contributions_summary$map_changesets), 
+    color = colour_secondary_mark, 
+    linetype = 2, 
+    lwd = 0.7
+  ) + 
+  annotate(
+    "text", 
+    x = mean(contributions_summary$map_changesets), 
+    y = 3, 
+    label = paste("Mean:", round(mean(contributions_summary$map_changesets), 2)),
+    color = colour_secondary_mark, 
+    fontface = "bold"
+  ) + 
+  # scale_x_continuous(breaks = seq(0, 20, by = 5)) +
+  labs(y = "Number of users", x = "Changesets authored by user") +
   theme_user_stats
 
-ggplotly(diary_activity)
+ggplotly(hist_map_changesets)
 
 ```
 
 ```{r}
-#| title: "Trace Activity"
+#| title: "Comments"
 
-trace_activity <- contributions_summary |>
-  ggplot(aes(x = account_age, y = traces)) +
-  geom_point(color = colour_primary_mark
+hist_comments <- contributions_summary |>
+  ggplot(aes(x = comments)) +
+  geom_histogram(
+    # breaks = seq(0, max(contributions_summary), by = 2),
+    color = colour_primary_mark,
+    fill = colour_fill
   ) +
-  geom_hline(yintercept = mean(contributions_summary$traces), color = colour_tertiary_mark, linetype = 2, lwd = 0.5) +
-  annotate("text", x = 7, y = mean(contributions_summary$comments) + 25, label = "Average Number of Traces", hjust = 0, size = 3)+
-  labs(y = "Traces Created", x = "Age of Account (in years)") +
+  geom_vline(
+    xintercept = mean(contributions_summary$comments), 
+    color = colour_secondary_mark, 
+    linetype = 2, 
+    lwd = 0.7
+  ) + 
+  annotate(
+    "text", 
+    x = mean(contributions_summary$comments), 
+    y = 3, 
+    label = paste("Mean:", round(mean(contributions_summary$comments), 2)),
+    color = colour_secondary_mark, 
+    fontface = "bold"
+  ) + 
+  # scale_x_continuous(breaks = seq(0, 20, by = 5)) +
+  labs(
+    subtitle = "Comments are discussions around a particular changeset",
+    x = "Comments authored by user",
+    y = "Number of users"
+  ) +
   theme_user_stats
 
-ggplotly(trace_activity)
+ggplotly(hist_comments)
+
+```
+
+
+```{r}
+#| title: "Diaries"
+
+hist_diary <- contributions_summary |>
+  ggplot(aes(x = diary)) +
+  geom_histogram(
+    # breaks = seq(0, max(contributions_summary), by = 2),
+    color = colour_primary_mark,
+    fill = colour_fill
+  ) +
+  geom_vline(
+    xintercept = mean(contributions_summary$diary), 
+    color = colour_secondary_mark, 
+    linetype = 2, 
+    lwd = 0.7
+  ) + 
+  annotate(
+    "text", 
+    x = mean(contributions_summary$diary), 
+    y = 3, 
+    label = paste("Mean:", round(mean(contributions_summary$diary), 2)),
+    color = colour_secondary_mark, 
+    fontface = "bold"
+  ) + 
+  # scale_x_continuous(breaks = seq(0, 20, by = 5)) +
+  labs(y = "Number of users", x = "Diary entries authored by user") +
+  theme_user_stats
+
+ggplotly(hist_diary)
+
+```
+
+
+```{r}
+#| title: "Traces"
+
+hist_traces <- contributions_summary |>
+  ggplot(aes(x = traces)) +
+  geom_histogram(
+    # breaks = seq(0, max(contributions_summary), by = 2),
+    color = colour_primary_mark,
+    fill = colour_fill
+  ) +
+  geom_vline(
+    xintercept = mean(contributions_summary$traces), 
+    color = colour_secondary_mark, 
+    linetype = 2, 
+    lwd = 0.7
+  ) + 
+  annotate(
+    "text", 
+    x = mean(contributions_summary$traces), 
+    y = 3, 
+    label = paste("Mean:", round(mean(contributions_summary$traces), 2)),
+    color = colour_secondary_mark, 
+    fontface = "bold"
+  ) + 
+  # scale_x_continuous(breaks = seq(0, 20, by = 5)) +
+  labs(y = "Number of users", x = "Traces uploaded by user") +
+  theme_user_stats
+
+ggplotly(hist_traces)
 
 ```
 
@@ -898,7 +949,7 @@ wiki_edits_day_time <- wiki_contributions |>
   select(timestamp) |>
   mutate(
     date = ymd_hms(timestamp),
-    month = ordered(month(date), labels = month.abb),
+    month = factor(month(date), levels = c(1:12), labels = month.abb),
     weekday = weekdays(date),
     weekday = forcats::fct_relevel(
       as.factor(weekday),
@@ -910,7 +961,8 @@ wiki_edits_day_time <- wiki_contributions |>
       "Saturday",
       "Sunday"
     )
-  ) |>   count(month, weekday)
+  ) |>   
+  count(month, weekday)
 
 
 # plotly.js does not (yet) support horizontal legend items, hence legend is
@@ -1043,6 +1095,8 @@ notes_total / notes_users
 ```
 
 Wordcout based on notes contents
+
+WordLength by notes?
 
 
 ## Traces
