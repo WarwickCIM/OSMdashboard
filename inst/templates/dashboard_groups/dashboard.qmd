@@ -151,7 +151,16 @@ wiki_contributions_n <- wiki_contributions |>
 contributions_type <- contributions_summary |> 
   select(-starts_with("date"), -account_age) |> 
   pivot_longer(-user) |> 
-  count(name, wt = value)
+  count(name, wt = value) |> 
+  filter(name %in% c(
+    "comments", 
+    "diary", 
+    "map_changesets", 
+    "map_notes", 
+    "traces", 
+    "wiki_edits"
+    )
+  )
 
 
 
