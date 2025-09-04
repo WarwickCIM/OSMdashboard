@@ -517,8 +517,37 @@ changeset_heatmap_interactive
 
 
 ### {.tabset}
+
 ```{r}
 #| title: "Changesets and size"
+hist_changesets_size <- changesets_details |> 
+  count(changeset, name = "n_features") |>
+  mutate(changeset = as.numeric(changeset)) |> 
+  right_join(changesets, by = join_by(changeset == id)) |> 
+  select(changeset, n_features, area_meters) |> 
+  mutate(area_hectare = area_meters * 0.0001,
+         area_hectare = as.numeric(area_hectare)) |> 
+  select(n_features, area_hectare) |> 
+  pivot_longer(c(n_features, area_hectare)) |> 
+  ggplot(aes(x = value, fill = name)) +
+  geom_histogram() +
+  facet_wrap(~name, ncol=1, scales = "free_x")+ 
+  labs(y = "", x = "") +
+  theme_minimal() +
+  theme(
+    axis.title.y=element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.y = element_blank(),
+    panel.grid= element_blank()
+  ) 
+
+ggplotly(hist_changesets_size)
+
+
+```
+
+```{r}
+#| title: "Changesets and size 2"
 p <- changesets |> 
   count(changes_count, sort = TRUE) |> 
   ggplot(aes(x = changes_count, y = n)) +
@@ -530,33 +559,6 @@ p <- changesets |>
   theme_minimal()
 
 ggplotly(p)
-
-```
-
-
-```{r}
-changesets_details |> 
-  count(changeset, name = "n_features") |>
-  mutate(changeset = as.numeric(changeset)) |> 
-  right_join(changesets, by = join_by(changeset == id)) |> 
-  select(changeset, n_features, area_meters) |> 
-  mutate(area_hectare = area_meters * 0.0001,
-         area_hectare = as.numeric(area_hectare)) |> 
-  select(n_features, area_hectare) |> 
-  pivot_longer(c(n_features, area_hectare)) |> 
-  ggplot(aes(x = value, y = 1, fill = name)) +
-  geom_boxplot() +
-  facet_wrap(~name, ncol=1, scales = "free_x")+ 
-  labs(y = "", x ="") +
-  # theme_minimal() +
-  theme(
-    axis.title.y=element_blank(),
-    axis.ticks.y = element_blank(),
-    axis.text.y = element_blank(),
-    panel.grid= element_blank()
-  ) 
-
-
 
 ```
 
