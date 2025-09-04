@@ -199,35 +199,6 @@ nrow(contributions_summary)
 round(mean(contributions_summary$account_age), digits = 2)
 ```
 
-```{r}
-#| content: valuebox
-#| title: "# users with changesets"
-#| icon: map
-#| color: primary
-contributions_summary |> 
-  filter(map_changesets > 0) |> 
-  nrow()
-```
-
-```{r}
-#| content: valuebox
-#| title: "# users with diary notes"
-#| icon: calendar
-#| color: primary
-contributions_summary |> 
-  filter(diary > 0) |> 
-  nrow()
-```
-
-```{r}
-#| content: valuebox
-#| title: "# users with wiki edits"
-#| icon: wikipedia
-#| color: primary
-contributions_summary |> 
-  filter(wiki_edits > 0) |> 
-  nrow()
-```
 
 Hours spent contributing (estimate based on time x changesets x features + time * written words + time * delete words + time for discussion + time for ...)
 
