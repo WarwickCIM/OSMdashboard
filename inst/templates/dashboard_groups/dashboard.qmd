@@ -436,7 +436,6 @@ leaflet(options = leafletOptions(maxZoom = 12)) |>
   addTiles() |>   # Add default OpenStreetMap map tiles
   addProviderTiles(providers$CartoDB.Positron) |> 
   # addProviderTiles(providers$Esri.WorldStreetMap) |> 
-  addMiniMap() |> 
   # addPolygons(data = changesets_sf) |> 
   # addCircles(data = changesets_sf_centroids)
   addHeatmap(data = filter(changesets_sf_centroids, !is.na(lon)), lng = ~lon, lat = ~lat,
