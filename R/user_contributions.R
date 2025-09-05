@@ -16,8 +16,14 @@ get_contributions_osm_users <- function(users) {
   df <- data.frame()
 
   for (user in users) {
+
+    print(user)
+
+    # Sanitise url
+    user_clean <- gsub(" ", "%20", user)
+
     # URL to scrape
-    url <- paste0("https://www.openstreetmap.org/user/", user)
+    url <- paste0("https://www.openstreetmap.org/user/", user_clean)
 
     # Read the HTML content of the page
     page <- rvest::read_html(url)
@@ -34,6 +40,11 @@ get_contributions_osm_users <- function(users) {
       rvest::html_element(".text-body-secondary dl") |>
       rvest::html_elements("dd") |>
       rvest::html_text()
+
+    # Dirty way to make sure that only dates are retrieved (i.e. if the user has
+    # a location specified, it would be stored in user_dates, too!). It would be
+    # better to improve the xpath in the previous code.
+    user_dates <- tail(user_dates, 2)
 
     user_dates_df <- data.frame(
       user = user,

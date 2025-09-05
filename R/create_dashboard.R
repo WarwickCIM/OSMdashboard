@@ -5,8 +5,6 @@
 #'
 #' @param path a string containing the destination path where the dashboard is
 #'   going to reside.
-#' @param overwrite boolean specifying whether to overwrite the folder if it
-#'   exists.
 #'
 #' @returns a folder containing the template to start editing the dashboard.
 #' @export
@@ -32,7 +30,7 @@
 #'
 #' # Restore the original working directory
 #' setwd(original_wd)
-create_dashboard <- function(path, overwrite = FALSE) {
+create_dashboard <- function(path) {
   # Get the path to the folder within the package
   package_folder <- system.file(
     "templates/dashboard_groups",
@@ -42,6 +40,22 @@ create_dashboard <- function(path, overwrite = FALSE) {
   # Check if the folder exists in the package
   if (package_folder == "") {
     stop("The folder does not exist in the package.")
+  }
+
+  # Ask to overwrite existing directory
+  if (dir.exists(path)) {
+    # Display a menu asking to confirm folder's overwrite
+    cli::cli_alert_danger("The folder {path} already exists.")
+    choice <- menu(c("Overwrite", "Cancel"), title = "What would you like to do?")
+    
+    # Handle the user's choice
+    if (choice == 2 || choice == 0) { # 2 = Cancel, 0 = No selection
+      cli::cli_alert_info("Operation cancelled. No files were copied to avoid overwriting folder.")
+      return(invisible(NULL)) # Exit the function without further execution
+    }
+    
+    # If the user selects "Overwrite", proceed
+    cli::cli_alert_info("Overwritting the folder {path}/ ...")
   }
 
   # Ensure the destination path exists, create it if it doesn't
@@ -67,5 +81,15 @@ create_dashboard <- function(path, overwrite = FALSE) {
     file.copy(file, destination, overwrite = TRUE)
   }
 
-  message("Dashboard scaffolded successfully at: ", path)
+  if (!dir.exists(paste0(path, "/data/raw/"))) {
+    dir.create(paste0(path, "/data/raw/"), recursive = TRUE)
+  }
+
+  if (!dir.exists(paste0(path, "/data/processed/"))) {
+    dir.create(paste0(path, "/data/processed/"), recursive = TRUE)
+  }
+
+  absolute_path <- paste0(getwd(), "/", path)
+
+  cli::cli_alert_success("Dashboard scaffolded successfully at: {absolute_path}.")
 }

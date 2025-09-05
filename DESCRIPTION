@@ -29,6 +29,11 @@ Authors@R: c(
       comment = c("As a member of Geochicas, Alejandra contributed to the ideation of the dashboard as part of the co-design process.")
     ),
     person(
+      "Hazel", "Cyril",
+      role = "ctb",
+      comment = c("As a Research Assistant, Hazel contributed to improving the dashboards' data visualisations, with an emphasis on accessibility.")
+    ),
+    person(
       "ESRC Digital Good Network",
       role = "fnd",
       comment = c("This project has been funded by the Digital Good Research Fund 2024")
@@ -42,6 +47,7 @@ RoxygenNote: 7.3.2
 URL: https://github.com/WarwickCIM/OSMdashboard, https://warwickcim.github.io/OSMdashboard/
 BugReports: https://github.com/WarwickCIM/OSMdashboard/issues
 Imports: 
+    cli,
     dplyr,
     lubridate,
     osmapiR,
@@ -52,4 +58,7 @@ Imports:
     tidyRSS,
     WikipediR
 Suggests: 
+    knitr,
+    rmarkdown,
     sf
+VignetteBuilder: knitr

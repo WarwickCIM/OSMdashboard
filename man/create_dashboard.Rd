@@ -4,14 +4,11 @@
 \alias{create_dashboard}
 \title{Create a dashboard template}
 \usage{
-create_dashboard(path, overwrite = FALSE)
+create_dashboard(path)
 }
 \arguments{
 \item{path}{a string containing the destination path where the dashboard is
 going to reside.}
-
-\item{overwrite}{boolean specifying whether to overwrite the folder if it
-exists.}
 }
 \value{
 a folder containing the template to start editing the dashboard.

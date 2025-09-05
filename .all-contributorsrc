@@ -9,6 +9,15 @@
   "contributorsPerLine": 7,
   "contributors": [
     {
+      "name": "ESRC Digital Good Network",
+      "description": "Funding",
+      "avatar_url": "https://warwick.ac.uk/fac/cross_fac/cim/research/digital-good-neutrality-osm/screenshot_2024-09-19_at_10-15-55_esrc_digital_good_network_-_esrc_digital_good_network.png",
+      "profile": "https://digitalgood.net/",
+      "contributions": [
+        "financial"
+      ]
+    },
+    {
       "login": "ccamara",
       "name": "Carlos Cámara",
       "avatar_url": "https://avatars.githubusercontent.com/u/706549?v=4",
@@ -18,9 +27,65 @@
         "ideas",
         "design",
         "infra",
-        "research",
+        "research"
+      ]
+    },
+    {
+      "login": "timothymonteath",
+      "name": "timothymonteath",
+      "avatar_url": "https://avatars.githubusercontent.com/u/17410066?v=4",
+      "profile": "https://github.com/timothymonteath",
+      "contributions": [
+        "ideas",
+        "research"
+      ]
+    },
+    {
+      "login": "seleneyang",
+      "name": "Selene Yang",
+      "avatar_url": "https://avatars.githubusercontent.com/u/20440464?v=4",
+      "profile": "http://seleneyang.info",
+      "contributions": [
+        "ideas"
+      ]
+    },
+    {
+      "login": "silvira",
+      "name": "silvira",
+      "avatar_url": "https://avatars.githubusercontent.com/u/78524262?v=4",
+      "profile": "https://github.com/silvira",
+      "contributions": [
+        "ideas"
+      ]
+    },
+    {
+      "login": "malecanclini",
+      "name": "malecanclini",
+      "avatar_url": "https://avatars.githubusercontent.com/u/166962846?v=4",
+      "profile": "https://github.com/malecanclini",
+      "contributions": [
+        "ideas"
+      ]
+    },
+    {
+      "login": "geochicas",
+      "name": "Geochicas",
+      "avatar_url": "https://avatars.githubusercontent.com/u/25299161?v=4",
+      "profile": "https://github.com/geochicas",
+      "contributions": [
+        "promotion"
+      ]
+    },
+    {
+      "login": "hazelcyril",
+      "name": "H CYRIL",
+      "avatar_url": "https://avatars.githubusercontent.com/u/188065610?v=4",
+      "profile": "https://github.com/hazelcyril",
+      "contributions": [
+        "code",
         "doc"
       ]
     }
-  ]
+  ],
+  "repoType": "github"
 }

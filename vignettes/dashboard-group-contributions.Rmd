@@ -1,0 +1,119 @@
+---
+title: "Group contributions' dasbhoard"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Group contributions' dasbhoard}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+The main output of `{OSMdashboard}` is a dashboard that summarizes how a defined group of users contribute to OpenStreetMap. The dashboard includes various visualizations and statistics that address questions such as: 
+
+- How homogeneous or heterogeneous is a group,
+- How experienced their members are,
+- How frequently they contribute,
+- Which topics are relevant to their members,
+- What kind of contributions are they interested in
+- etc.
+
+This dashboard is different from other tools displaying OSM contributions, such as Pascal Neis’ excellent [HDYC](https://hdyc.neis-one.org/) (from which we drew inspiration), insofar:
+
+- Its focus in on groups of people, not individuals. For the purposes of this dashboard, a group is a number of users that have shared interests or features (either self-reported or inferred).
+- It respects individual's privacy (see [FAQ below](#privacy)). 
+- It recognises that there are different ways of contributing to OSM beyond map contributions (see [FAQ below](#contribution-types)).
+- It is opensource: you can see the code (and contribute to it!) in this [GitHub repository](https://github.com/WarwickCIM/OSMdashboard).
+- It is self-hosted (for now! -keep tuned), meaning that data stays in your computer.
+- (sadly) It is way slower.
+
+
+This dashboard may be useful for anyone interested in better understanding EDI considerations and the dynamics within OpenStreetMap community, including researchers, project managers, and community organizers.
+
+## How to use the dashboard
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+1. Create the necessary files and folder structure needed for the dasbhoard (referred to as "project's folder") by running the code below in the R console:
+
+    ``` r
+    # Create a template
+    OSMdashboard::create_dashboard("my_folder")
+    ```
+
+2. Introduce group's metadata:
+   1. Locate the folder `data/metadata` inside the project's folder created in the previous step.
+   2. Edit the group's  `data/metadata/group_info.csv` and replace the default values, keeping the column names.
+   3. Edit `data/metadata/group_users.csv` and replace `<demo_user>` with an actual OSM username. Add as many rows as needed, but keep the column name. New columns will be ignored.
+3. Create the datasets
+   1. Run `data_retrieval.R` to retrieve all the data needed for the dashboard. This will create several datasets inside the `data/raw` folder. This may take a while depending on the number of users in the group and the time range selected.
+   
+   ``` r
+   source("data_retrieval.R")
+   ```
+
+4. Render `dashboard.qmd` to generate the dashboard[^quarto], either:
+   1. Run the following command in the terminal from the folder:
+
+    ```bash
+    quarto render dashboard.qmd
+    ```
+   2. From RStudio, click on "Render" icon
+   3. From Positron, trigger the command palette (`Cmd/Ctrl + Shift + P`) and type "Quarto: Render Document"
+
+## Limitations
+
+- The dashboard is currently static, meaning that it needs to be re-rendered to update the data. We are working on a dynamic version (keep tuned!).
+- Generating the datasets may take a while, especially for large groups or long time ranges.
+- Due to API limitations, only the most recent contributions can be retrieved (see `data_retrieval.R` for details).
+- Not all types of contributions are considered yet (see [FAQ below](#contribution-types)).
+
+## FAQ
+
+### How are you considering individual's privacy?{#privacy}
+
+We take privacy seriously. The dashboard is designed to respect the privacy of individual contributors by implementing several measures:
+
+- Aggregated data
+- No individual user data is displayed
+- No usernames are displayed
+- Group names can be generic (e.g. "mappers in X country")
+- Introducing noise in changesets' locations
+- Zoom levels for contributions are limited to avoid identifying exact locations.
+- Data is stored locally. Raw data containing usernames and disaggregated data is stored in a folder that is automatically ignored from a git repo.
+
+### What types of contributions are considered? {#contribution-types}
+
+Map edits may be the most visible, obvious and frequent type of contribution to OSM, but they are not the only ones. This dashboard recongises that there are different ways of contributing to OSM, and all them are equally important. Consequently, it incorporating the following types of contributions:
+
+- Map edits/changesets
+- Wiki edits
+- User diaries
+- User traces
+- Map notes
+- Map discussions
+
+We are aware that there are other types of contributions that are not (yet) considered due to technical limitations, such as:
+
+- Forum posts
+- Mailing list contributions
+- Translations
+- Governance (e.g. Committees' or Workging Groups' membership or contributions)
+
+
+### What data sources are used?
+
+The dashboard pulls data from the following sources:
+
+- OpenStreetMap API (via `{osmapiR}`))
+- OpenStreetMap Wiki API (via `{wikipediR}`))
+- OpenStreetMap User profiles (via `{rvest}`))
+
+### How are feminist design principles considered? 
+
+See dedidated vignette (to come): `vignette("articles/feminist-design-principles")`
+
+[^quarto]: To do so, you will need quarto installed. See <https://quarto.org/docs/get-started/> for instructions.
