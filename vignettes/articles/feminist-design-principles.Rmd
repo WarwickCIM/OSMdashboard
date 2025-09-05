@@ -34,9 +34,9 @@ People involved in the design process and implementation of this package provide
 
 This project is a research output of the project _["Can digital goods be neutral? Evaluating OpenStreetMap’s equity through participatory data visualisation"](https://warwick.ac.uk/fac/cross_fac/cim/research/digital-good-neutrality-osm)_ led by Carlos Cámara-Menoyo and Timothy Monteath and funded by the [ESRC Digital Good Network](https://digitalgood.net/) through their Digital Good Research Fund 2024-25. The aims of the project are clearly aligned with this principle and are listed below:
 
-- To critically ^^enquiry about neutrality as an aspiration^^ and guiding principle for digital goods
-- ^^To challenge the positivist dominant approach to digital goods^^ by proposing alternative aspirations and expectations for digital goods, guided by equity principles.
-- To ^^influence an existing digital good^^ by campaigning for the inclusion of equity considerations in their governance
+- To critically enquiry about neutrality as an aspiration and guiding principle for digital goods,
+- To challenge the positivist dominant approach to digital goods by proposing alternative aspirations and expectations for digital goods, guided by equity principles.
+- To influence an existing digital good by campaigning for the inclusion of equity considerations in their governance.
 
 ## Consider context
 
