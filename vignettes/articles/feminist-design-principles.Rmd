@@ -42,26 +42,28 @@ This project is a research output of the project _["Can digital goods be neutral
 
 > A feminist approach to data visualization must therefore consider how diverse contexts can influence the production of a visualization, and think through the various ways in which any particular visualization output might be received. -- @dignazioFeministDataVisualization2016
 
-We are aiming to appeal to a diverse audience, not necessarily experts in OSM or data visualisation. Therefore, we have paid speciall attention to make this as accessible as possible, by:
+We are aiming to appeal to a diverse audience, not necessarily experts in OSM or data visualisation. Therefore, we have paid speciall attention to make this as accessible as possible, as follows:
 
 
 ### Data Visualisation types
 
- 1. Favouring well-known visualisation types (e.g. bar charts, line charts, maps) over more complex or novel visualisations that may be harder to interpret or require a higher level of data literacy that may not always be realistic to expect from the audience. 
+Favouring well-known visualisation types (e.g. bar charts, line charts, maps) over more complex or novel visualisations that may be harder to interpret or require a higher level of data literacy that may not always be realistic to expect from the audience. 
 
-As an example, while we initially considered using boxplots to represent the distribution of several metrics in order to understand how homogeneous or heterogeneous a group is, we finally opted for histograms, which are more widely known and easier to interpret, in line with .
+As an example, while we initially considered using boxplots to represent the distribution of several metrics in order to understand how homogeneous or heterogeneous a group is, we finally opted for histograms, which are more widely known and easier to interpret.
 
-### Accessibility
+TODO: screenshot of boxplot vs histogram (before and after)
+
+### Colour palette
 
 To improve accessibility of the visualisations, a colour blindness friendly colour palette was adopted from [Color Brewer 2.0](https://colorbrewer2.org/#type=diverging&scheme=PuOr&n=4).
 
-Neutral colours, Purple and Orange, that do not implicate gender, race or other aspects were chosen for the visualisations.
-
-
+Neutral colours, Purple and Orange, not associated with gender, race or other aspects were chosen for the visualisations.
 
 ## Legitimize Embodiment and Affect
 
 > With the rise of popular forms of visualization such as data journalism, designers have begun to intentionally leverage affect in order to create an emotional bond with a story or issue, or to engage and impress readers with beauty and complexity. These affective dimensions of visualization have been under-explored in traditional visualization research. Acknowledging the importance of embodiment and affect also has implications for how we evaluate visualizations. -- @dignazioFeministDataVisualization2016
+
+TODO: explain how we are trying to get an understanding of the interests and motivations of the groups by looking at the types of keys used, or the hashtags. Not just listing and counting, but also structuring them and classifying, to surface stories, interests and motivations.
 
 ## Make labor visible
 
