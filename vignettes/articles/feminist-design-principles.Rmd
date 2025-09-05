@@ -53,6 +53,9 @@ As an example, while we initially considered using boxplots to represent the dis
 
 ### Accessibility
 
+To improve accessibility of the visualisations, a colour blindness friendly colour palette was adopted from [Color Brewer 2.0](https://colorbrewer2.org/#type=diverging&scheme=PuOr&n=4).
+
+Neutral colours, Purple and Orange, that do not implicate gender, race or other aspects were chosen for the visualisations.
 
 
 
