@@ -100,6 +100,8 @@ We are aware that there are other types of contributions that are not (yet) cons
 
 - Forum posts
 - Mailing list contributions
+- Translations
+- Governance (e.g. Committees' or Workging Groups' membership or contributions)
 
 
 ### What data sources are used?
@@ -112,6 +114,6 @@ The dashboard pulls data from the following sources:
 
 ### How are feminist design principles considered? 
 
-See dedidated vignette (to come).
+See dedidated vignette (to come): `vignette("articles/feminist-design-principles")`
 
 [^quarto]: To do so, you will need quarto installed. See <https://quarto.org/docs/get-started/> for instructions.
