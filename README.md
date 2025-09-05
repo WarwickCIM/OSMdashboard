@@ -14,9 +14,9 @@ public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostat
 > This package is highly experimental and is still a WIP. Expect
 > uncomplete features, frequent breaks, uncomplete documentation and changes in the API.
 
-The goal of OSMdashboard is help to understand how different groups of users contribute to OSM. It does so by creating interactive dashboards that visualise OSM-data locally and anonymously, just by filling a csv file.
+The goal of OSMdashboard is help to understand how different groups of users contribute to OpenStreetMap (OSM). It does so by creating interactive dashboards that visualise OSM-data locally and anonymously, just by filling a `csv` file.
 
-This dashboard may be useful for anyone interested in better understanding EDI considerations and the dynamics within OpenStreetMap community, including researchers, project managers, and community organizers.
+This project follows d'Ignazio and Klein's feminist design principles and the visualisations produced may be useful for anyone interested in better understanding EDI considerations and the dynamics within OpenStreetMap community, including researchers, project managers, and community organizers.
 
 ![Dashboard screenshot](man/figures/dashboard-screenshot.png)
 
