@@ -64,17 +64,170 @@
 
     
     
-<p>Potential content:</p>
-<pre><code>Explain the dasbhoard's novelty
-Method
-How to use </code></pre>
+<p>The main output of <a href="https://github.com/WarwickCIM/OSMdashboard" class="external-link">OSMdashboard</a> is a dashboard that
+summarizes how a defined group of users contribute to OpenStreetMap. The
+dashboard includes various visualizations and statistics that address
+questions such as:</p>
+<ul>
+<li>How homogeneous or heterogeneous is a group,</li>
+<li>How experienced their members are,</li>
+<li>How frequently they contribute,</li>
+<li>Which topics are relevant to their members,</li>
+<li>What kind of contributions are they interested in</li>
+<li>etc.</li>
+</ul>
+<p>This dashboard is different from other tools displaying OSM
+contributions, such as Pascal Neis’ excellent <a href="https://hdyc.neis-one.org/" class="external-link">HDYC</a> (from which we drew
+inspiration), insofar:</p>
+<ul>
+<li>Its focus in on groups of people, not individuals. For the purposes
+of this dashboard, a group is a number of users that have shared
+interests or features (either self-reported or inferred).</li>
+<li>It respects individual’s privacy (see <a href="#privacy">FAQ
+below</a>).</li>
+<li>It recognises that there are different ways of contributing to OSM
+beyond map contributions (see <a href="#contribution-types">FAQ
+below</a>).</li>
+<li>It is opensource: you can see the code (and contribute to it!) in
+this <a href="https://github.com/WarwickCIM/OSMdashboard" class="external-link">GitHub
+repository</a>.</li>
+<li>It is self-hosted (for now! -keep tuned), meaning that data stays in
+your computer.</li>
+<li>(sadly) It is way slower.</li>
+</ul>
+<p>This dashboard may be useful for anyone interested in better
+understanding EDI considerations and the dynamics within OpenStreetMap
+community, including researchers, project managers, and community
+organizers.</p>
 <div class="section level2">
 <h2 id="how-to-use-the-dashboard">How to use the dashboard<a class="anchor" aria-label="anchor" href="#how-to-use-the-dashboard"></a>
 </h2>
+<ol style="list-style-type: decimal">
+<li>
+<p>Create the necessary files and folder structure needed for the
+dasbhoard (referred to as “project’s folder”) by running the code below
+in the R console:</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Create a template</span></span>
+<span><span class="fu">OSMdashboard</span><span class="fu">::</span><span class="fu"><a href="../reference/create_dashboard.html">create_dashboard</a></span><span class="op">(</span><span class="st">"my_folder"</span><span class="op">)</span></span></code></pre></div>
+</li>
+<li>
+<p>Introduce group’s metadata:</p>
+<ol style="list-style-type: decimal">
+<li>Locate the folder <code>data/metadata</code> inside the project’s
+folder created in the previous step.</li>
+<li>Edit the group’s <code>data/metadata/group_info.csv</code> and
+replace the default values, keeping the column names.</li>
+<li>Edit <code>data/metadata/group_users.csv</code> and replace
+<code>&lt;demo_user&gt;</code> with an actual OSM username. Add as many
+rows as needed, but keep the column name. New columns will be
+ignored.</li>
+</ol>
+</li>
+<li>
+<p>Create the datasets</p>
+<ol style="list-style-type: decimal">
+<li>Run <code>data_retrieval.R</code> to retrieve all the data needed
+for the dashboard. This will create several datasets inside the
+<code>data/raw</code> folder. This may take a while depending on the
+number of users in the group and the time range selected.</li>
+</ol>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/WarwickCIM/OSMdashboard" class="external-link">OSMdashboard</a></span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/source.html" class="external-link">source</a></span><span class="op">(</span><span class="st">"data_retrieval.R"</span><span class="op">)</span></span></code></pre></div>
+</li>
+<li>
+<p>Render <code>dashboard.qmd</code> to generate the dashboard<a class="footnote-ref" tabindex="0" data-bs-toggle="popover" data-bs-content='&lt;p&gt;To do so, you will need quarto installed. See &lt;a href="https://quarto.org/docs/get-started/" class="external-link uri"&gt;https://quarto.org/docs/get-started/&lt;/a&gt; for instructions.&lt;/p&gt;'><sup>1</sup></a>,
+either:</p>
+<ol style="list-style-type: decimal">
+<li>Run the following command in the terminal from the folder:</li>
+</ol>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="ex">quarto</span> render dashboard.qmd</span></code></pre></div>
+<ol start="2" style="list-style-type: decimal">
+<li>From RStudio, click on “Render” icon</li>
+<li>From Positron, trigger the command palette
+(<code>Cmd/Ctrl + Shift + P</code>) and type “Quarto: Render
+Document”</li>
+</ol>
+</li>
+</ol>
 </div>
-  </main>
+<div class="section level2">
+<h2 id="limitations">Limitations<a class="anchor" aria-label="anchor" href="#limitations"></a>
+</h2>
+<ul>
+<li>The dashboard is currently static, meaning that it needs to be
+re-rendered to update the data. We are working on a dynamic version
+(keep tuned!).</li>
+<li>Generating the datasets may take a while, especially for large
+groups or long time ranges.</li>
+<li>Due to API limitations, only the most recent contributions can be
+retrieved (see <code>data_retrieval.R</code> for details).</li>
+<li>Not all types of contributions are considered yet (see <a href="#contribution-types">FAQ below</a>).</li>
+</ul>
+</div>
+<div class="section level2">
+<h2 id="faq">FAQ<a class="anchor" aria-label="anchor" href="#faq"></a>
+</h2>
+<div class="section level3">
+<h3 id="privacy">How are you considering individual’s privacy?<a class="anchor" aria-label="anchor" href="#privacy"></a>
+</h3>
+<p>We take privacy seriously. The dashboard is designed to respect the
+privacy of individual contributors by implementing several measures:</p>
+<ul>
+<li>Aggregated data</li>
+<li>No individual user data is displayed</li>
+<li>No usernames are displayed</li>
+<li>Group names can be generic (e.g. “mappers in X country”)</li>
+<li>Introducing noise in changesets’ locations</li>
+<li>Zoom levels for contributions are limited to avoid identifying exact
+locations.</li>
+<li>Data is stored locally. Raw data containing usernames and
+disaggregated data is stored in a folder that is automatically ignored
+from a git repo.</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="contribution-types">What types of contributions are considered?<a class="anchor" aria-label="anchor" href="#contribution-types"></a>
+</h3>
+<p>Map edits may be the most visible, obvious and frequent type of
+contribution to OSM, but they are not the only ones. This dashboard
+recongises that there are different ways of contributing to OSM, and all
+them are equally important. Consequently, it incorporating the following
+types of contributions:</p>
+<ul>
+<li>Map edits/changesets</li>
+<li>Wiki edits</li>
+<li>User diaries</li>
+<li>User traces</li>
+<li>Map notes</li>
+<li>Map discussions</li>
+</ul>
+<p>We are aware that there are other types of contributions that are not
+(yet) considered due to technical limitations, such as:</p>
+<ul>
+<li>Forum posts</li>
+<li>Mailing list contributions</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="what-data-sources-are-used">What data sources are used?<a class="anchor" aria-label="anchor" href="#what-data-sources-are-used"></a>
+</h3>
+<p>The dashboard pulls data from the following sources:</p>
+<ul>
+<li>OpenStreetMap API (via <a href="https://docs.ropensci.org/osmapiR/" class="external-link">osmapiR</a>))</li>
+<li>OpenStreetMap Wiki API (via <code>{wikipediR}</code>))</li>
+<li>OpenStreetMap User profiles (via <a href="https://rvest.tidyverse.org/" class="external-link">rvest</a>))</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="how-are-feminist-design-principles-considered">How are feminist design principles considered?<a class="anchor" aria-label="anchor" href="#how-are-feminist-design-principles-considered"></a>
+</h3>
+<p>See dedidated vignette (to come).</p>
+</div>
+</div>
+
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside>
 </div>
 
 

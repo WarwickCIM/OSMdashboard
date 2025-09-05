@@ -61,43 +61,51 @@
 <p>[!WARNING]<br>
 This package is highly experimental and is still a WIP. Expect uncomplete features, frequent breaks, uncomplete documentation and changes in the API.</p>
 </blockquote>
-<p>The goal of OSMdashboard is to create interactive dashboards that visualise OSM-data locally and anonymously, just by filling a csv file.</p>
+<p>The goal of OSMdashboard is help to understand how different groups of users contribute to OSM. It does so by creating interactive dashboards that visualise OSM-data locally and anonymously, just by filling a csv file.</p>
+<p>This dashboard may be useful for anyone interested in better understanding EDI considerations and the dynamics within OpenStreetMap community, including researchers, project managers, and community organizers.</p>
 <div class="float">
 <img src="reference/figures/dashboard-screenshot.png" alt="Dashboard screenshot"><div class="figcaption">Dashboard screenshot</div>
 </div>
 <div class="section level2">
+<h2 id="acknowledgements">Acknowledgements<a class="anchor" aria-label="anchor" href="#acknowledgements"></a>
+</h2>
+<p>This is an output of the research project <em><a href="https://warwick.ac.uk/fac/cross_fac/cim/research/digital-good-neutrality-osm" class="external-link">“Can digital goods be neutral? Evaluating OpenStreetMap’s equity through participatory data visualisation”</a></em> led by Carlos Cámara-Menoyo and Timothy Monteath and funded by the <a href="https://digitalgood.net/" class="external-link">ESRC Digital Good Network</a> through their Digital Good Research Fund 2024-25.</p>
+</div>
+<div class="section level2">
 <h2 id="citing">Citing<a class="anchor" aria-label="anchor" href="#citing"></a>
 </h2>
+<p>You are free to use and reuse this tool under the licence conditions.<br>
+If you use this package in your work, please cite it as below:</p>
+<blockquote>
+<p>Cámara-Menoyo C, Monteath T, Yang S, Rivera Alfaro S, Canclini A (2025). OSMdashboard: Creates OpenStreetMap-related Dashboards. R package version 0.0.0.9000, <a href="https://github.com/WarwickCIM/OSMdashboard" class="external-link uri">https://github.com/WarwickCIM/OSMdashboard</a>.</p>
+</blockquote>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="va">@Manual</span>{,</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>  <span class="dt">title</span> = {OSMdashboard: Creates OpenStreetMap-related Dashboards},</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>  <span class="dt">author</span> = {Carlos Cámara-Menoyo and Timothy Monteath and Selene Yang and Silvia {Rivera Alfaro} and Alejandra Canclini},</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>  <span class="dt">year</span> = {2025},</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>  <span class="dt">note</span> = {R package version 0.0.0.9000},</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a>  <span class="dt">url</span> = {https://github.com/WarwickCIM/OSMdashboard},</span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>}</span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
 <p>You can install the development version of OSMdashboard from <a href="https://github.com/" class="external-link">GitHub</a> with:</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("devtools")</span></span>
 <span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"WarwickCIM/OSMdashboard"</span><span class="op">)</span></span></code></pre></div>
+<p>This package uses quarto, which is is already installed with RStudio and Positron. In case it is not installed in your system, you will need to install it from <a href="https://quarto.org/docs/get-started/" class="external-link">here</a>.</p>
 </div>
 <div class="section level2">
-<h2 id="example">Example<a class="anchor" aria-label="anchor" href="#example"></a>
+<h2 id="usage">Usage<a class="anchor" aria-label="anchor" href="#usage"></a>
 </h2>
-<p>You can easily create a dashboard displaying group contributions by:</p>
 <ol style="list-style-type: decimal">
-<li>
-<p>Create a template running the code below:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Create a template</span></span>
-<span><span class="fu">OSMdashboard</span><span class="fu">::</span><span class="fu"><a href="reference/create_dashboard.html">create_dashboard</a></span><span class="op">(</span><span class="st">"my_folder"</span><span class="op">)</span></span></code></pre></div>
-</li>
-<li><p>Edit <code>data/group_info.csv</code> and replace the default values, keeping the column names.</p></li>
-<li><p>Edit <code>data/group_users.csv</code> and replace <code>&lt;demo_user&gt;</code> with an actual OSM username. Add as many rows as needed, but keep the column name. New columns will be ignored.</p></li>
-<li><p>Run <code>data_retrieval.R</code> to retrieve all the data needed for the dashboard.</p></li>
-<li><p>Render <code>dashboard.qmd</code> to generate the dashboard. To do so, you will need quarto installed (see instructions) and then either:</p></li>
-<li><p>Run the following command in the terminal from the folder:</p></li>
+<li>Create the dashboard folder structure by calling <code><a href="reference/create_dashboard.html">create_dashboard()</a></code>.</li>
+<li>Edit the <code>data/group_info.csv</code> and <code>data/group_users.csv</code> files to add your groups and users.</li>
+<li>Run <code>data_retrieval.R</code> to retrieve the data from OSM.</li>
+<li>Render <code>dashboard.qmd</code> to generate the dashboard.</li>
 </ol>
-<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="ex">quarto</span> render dashboard.qmd</span></code></pre></div>
-<ol start="3" style="list-style-type: decimal">
-<li>From RStudio click on render</li>
-</ol>
+<p>Refer to the <code><a href="articles/dashboard-group-contributions.html">vignette("dashboard-group-contributions")</a></code> for more details.</p>
 </div>
 <div class="section level2">
 <h2 id="contributors">Contributors<a class="anchor" aria-label="anchor" href="#contributors"></a>
