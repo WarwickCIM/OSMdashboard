@@ -59,6 +59,10 @@ To improve accessibility of the visualisations, a colour blindness friendly colo
 
 Neutral colours, Purple and Orange, not associated with gender, race or other aspects were chosen for the visualisations.
 
+### Language
+
+TODO: translations (see [issue #7](https://github.com/WarwickCIM/OSMdashboard/issues/7))
+
 ## Legitimize Embodiment and Affect
 
 > With the rise of popular forms of visualization such as data journalism, designers have begun to intentionally leverage affect in order to create an emotional bond with a story or issue, or to engage and impress readers with beauty and complexity. These affective dimensions of visualization have been under-explored in traditional visualization research. Acknowledging the importance of embodiment and affect also has implications for how we evaluate visualizations. -- @dignazioFeministDataVisualization2016
