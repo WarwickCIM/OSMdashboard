@@ -14,12 +14,34 @@ public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostat
 > This package is highly experimental and is still a WIP. Expect
 > uncomplete features, frequent breaks, uncomplete documentation and changes in the API.
 
+The goal of OSMdashboard is help to understand how different groups of users contribute to OpenStreetMap (OSM). It does so by creating interactive dashboards that visualise OSM-data locally and anonymously, just by filling a `csv` file.
 
-The goal of OSMdashboard is to create interactive dashboards that visualise OSM-data locally and anonymously, just by filling a csv file.
+This project follows d'Ignazio and Klein's feminist design principles and the visualisations produced may be useful for anyone interested in better understanding EDI considerations and the dynamics within OpenStreetMap community, including researchers, project managers, and community organizers.
 
 ![Dashboard screenshot](man/figures/dashboard-screenshot.png)
 
+
+## Acknowledgements
+
+This is an output of the research project _["Can digital goods be neutral? Evaluating OpenStreetMap’s equity through participatory data visualisation"](https://warwick.ac.uk/fac/cross_fac/cim/research/digital-good-neutrality-osm)_ led by Carlos Cámara-Menoyo and Timothy Monteath and funded by the [ESRC Digital Good Network](https://digitalgood.net/) through their Digital Good Research Fund 2024-25. 
+
+
 ## Citing
+
+You are free to use and reuse this tool under the licence conditions.  
+If you use this package in your work, please cite it as below:
+
+> Cámara-Menoyo C, Monteath T, Yang S, Rivera Alfaro S, Canclini A (2025). OSMdashboard: Creates OpenStreetMap-related Dashboards. R package version 0.0.0.9000, https://github.com/WarwickCIM/OSMdashboard.
+
+```bibtex
+@Manual{,
+  title = {OSMdashboard: Creates OpenStreetMap-related Dashboards},
+  author = {Carlos Cámara-Menoyo and Timothy Monteath and Selene Yang and Silvia {Rivera Alfaro} and Alejandra Canclini},
+  year = {2025},
+  note = {R package version 0.0.0.9000},
+  url = {https://github.com/WarwickCIM/OSMdashboard},
+}
+```
 
 
 ## Installation
@@ -31,27 +53,17 @@ You can install the development version of OSMdashboard from [GitHub](https://gi
 devtools::install_github("WarwickCIM/OSMdashboard")
 ```
 
-## Example
+This package uses quarto, which is is already installed with RStudio and Positron. In case it is not installed in your system, you will need to install it from [here](https://quarto.org/docs/get-started/).
 
-You can easily create a dashboard displaying group contributions by:
+## Usage
 
-1. Create a template running the code below:
+1. Create the dashboard folder structure by calling `create_dashboard()`.
+2. Edit the `data/group_info.csv` and `data/group_users.csv` files to add your groups and users.
+3. Run `data_retrieval.R` to retrieve the data from OSM.
+4. Render `dashboard.qmd` to generate the dashboard.
 
-    ``` r
-    # Create a template
-    OSMdashboard::create_dashboard("my_folder")
-    ```
-2. Edit `data/group_info.csv` and replace the default values, keeping the column names.
-3. Edit `data/group_users.csv` and replace `<demo_user>` with an actual OSM username. Add as many rows as needed, but keep the column name. New columns will be ignored.
-4. Run `data_retrieval.R` to retrieve all the data needed for the dashboard.
-5. Render `dashboard.qmd` to generate the dashboard. To do so, you will need quarto installed (see instructions) and then either:
-  1. Run the following command in the terminal from the folder:
-  
-  ```bash
-  quarto render dashboard.qmd
-  ```
+Refer to the `vignette("dashboard-group-contributions")` for more details.
 
-  3. From RStudio click on render
 
 ## Contributors
 

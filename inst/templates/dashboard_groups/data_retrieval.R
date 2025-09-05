@@ -18,7 +18,7 @@ osm_user_details <- get_contributions_osm_users(selected_users)
 
 # Map contributions -------------------------------------------------------
 
-changesets <- get_contributions_changesets(selected_users, 100)
+changesets <- get_contributors_changesets(selected_users, 100)
 
 changesets_details <- get_changesets_details(changesets$id)
 
