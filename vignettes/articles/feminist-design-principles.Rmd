@@ -10,43 +10,65 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup}
-library(OSMdashboard)
-```
 
-This package ins highly inspired and motivated by the 6 design principles for feminist data visualisations proposed by Catherine d'Ignazio and Lauren F. Klein [-@dignazio2023; -@dignazio2016]. In this page we explain how we have implemented (or tried to) each of these principles in the design of this package and its main output, the dashboard.
+This package ins highly influenced by the 6 design principles for feminist data visualisations proposed by Catherine d'Ignazio and Lauren F. Klein [-@dignazioFeministDataVisualization2016; -@dignazioDataFeminism2020]. In this page we explain how we are addressing each of these principles in the design of this package and its main output, the dashboard.
 
 ## Rethinking Binaries
 
-> A feminist approach to data visualization should therefore emphasize representational strategies premised on multiplicity rather than binaries, and acknowledge the limits of any binaristic view [53]. -- @dignazio2016
+> A feminist approach to data visualization should therefore emphasize representational strategies premised on multiplicity rather than binaries, and acknowledge the limits of any binaristic view. -- @dignazioFeministDataVisualization2016
+
+Traditionally, map contributions have been considered the main (or even the only) way of contributing to OSM. This shadows other ways of contributing while suggesting that alternative contributions are second to map contributions.  We are incorporating a diversity of contribution types that recongises this diversity in OSM contributions (see `vignette("dashboard-group-contributions")` for a detailed list of contributions types being recognised in the dashboard).
 
 ## Embrace pluralism
 
-> We believe that self-disclosure, and an embrace of pluralism more generally, can do more; it can help to encourage alternatives to the single “view from nowhere” so often favored in visualization design [21]. Ideally, a focus on pluralism would help visualization research move away from its current emphasis on “objective” presentation in favor of designs that facilitate pathways to multiple truths. -- @dignazio2016
+> We believe that self-disclosure, and an embrace of pluralism more generally, can do more; it can help to encourage alternatives to the single “view from nowhere” so often favored in visualization design. Ideally, a focus on pluralism would help visualization research move away from its current emphasis on “objective” presentation in favor of designs that facilitate pathways to multiple truths. -- @dignazioFeministDataVisualization2016
 
-We do so by:
+This package is the result of a participatory design process with members of [Geochicas](https://wiki.openstreetmap.org/wiki/ES:LatAm/Grupos/GeoChicas)[^geochicas] and researchers from the University of Warwick, who happen to be long-term OSM contributors.
 
-- This package is the result of a participatory design process with members of Geochicas and researchers from the University of Warwick, who happen to be long-term OSM contributors.
-- Incorporating a diversity of contribution types (see `vignette::dashboard-group-contributions`)
-- 
+People involved in the design process and implementation of this package provide from a diversity of geographies, cultures, genders, sexual orientations and ethnicities, and have different levels of seniority and experience with OSM and data visualisation. We've made a conscious effort to create a safe, caring and collaborative environment where each member has been able to contribute to the shaping of this project. We have embraded diversity to ensure that the package and its outputs are relevant and useful for a wider audience.
+
 
 ## Examine Power and Aspire to Empowerment
 
-> A feminist approach to data visualization therefore acknowledges the user as a source of knowledge in the design as well as the reception of any visual interface. The creation of knowledge is, after all, always a shared endeavor.
+> A feminist approach to data visualization therefore acknowledges the user as a source of knowledge in the design as well as the reception of any visual interface. The creation of knowledge is, after all, always a shared endeavor. -- @dignazioFeministDataVisualization2016
+
+This project is a research output of the project _["Can digital goods be neutral? Evaluating OpenStreetMap’s equity through participatory data visualisation"](https://warwick.ac.uk/fac/cross_fac/cim/research/digital-good-neutrality-osm)_ led by Carlos Cámara-Menoyo and Timothy Monteath and funded by the [ESRC Digital Good Network](https://digitalgood.net/) through their Digital Good Research Fund 2024-25. The aims of the project are clearly aligned with this principle and are listed below:
+
+- To critically ^^enquiry about neutrality as an aspiration^^ and guiding principle for digital goods
+- ^^To challenge the positivist dominant approach to digital goods^^ by proposing alternative aspirations and expectations for digital goods, guided by equity principles.
+- To ^^influence an existing digital good^^ by campaigning for the inclusion of equity considerations in their governance
 
 ## Consider context
 
-> A feminist approach to data visualization must therefore consider how diverse contexts can influence the production of a visualization, and think through the various ways in which any particular visualization output might be received.
+> A feminist approach to data visualization must therefore consider how diverse contexts can influence the production of a visualization, and think through the various ways in which any particular visualization output might be received. -- @dignazioFeministDataVisualization2016
+
+We are aiming to appeal to a diverse audience, not necessarily experts in OSM or data visualisation. Therefore, we have paid speciall attention to make this as accessible as possible, by:
+
+
+### Data Visualisation types
+
+ 1. Favouring well-known visualisation types (e.g. bar charts, line charts, maps) over more complex or novel visualisations that may be harder to interpret or require a higher level of data literacy that may not always be realistic to expect from the audience. 
+
+As an example, while we initially considered using boxplots to represent the distribution of several metrics in order to understand how homogeneous or heterogeneous a group is, we finally opted for histograms, which are more widely known and easier to interpret, in line with .
+
+### Accessibility
+
+
+
 
 ## Legitimize Embodiment and Affect
 
-> With the rise of popular forms of visualization such as data journalism, designers have begun to intentionally leverage affect in order to create an emotional bond with a story or issue [11], or to engage and impress readers with beauty and complexity 61. These affective dimensions of visualization have been under-explored in traditional visualization research. Acknowledging the importance of embodiment and affect also has implications for how we evaluate visualizations.
+> With the rise of popular forms of visualization such as data journalism, designers have begun to intentionally leverage affect in order to create an emotional bond with a story or issue, or to engage and impress readers with beauty and complexity. These affective dimensions of visualization have been under-explored in traditional visualization research. Acknowledging the importance of embodiment and affect also has implications for how we evaluate visualizations. -- @dignazioFeministDataVisualization2016
 
 ## Make labor visible
 
-> “Starting with questions of data provenance helps to credit the bodies that make visualization possible – the bodies that collect the data, that digitize them, that clean them, and that maintain them. However, most data provenance research focuses on technical rather than human points of origination and integration [66]. With its emphasis on under-valued forms of labor, a feminist approach to visualization can help to render visible the bodies that shape and care for data at every stage of the process. This relates to the concept of provenance rhetoric [44] in which authors of narrative visualizations cite data sources and methods which may help build credibility with the audience.” -- @dignazio2016, p. 3
+> “Starting with questions of data provenance helps to credit the bodies that make visualization possible – the bodies that collect the data, that digitize them, that clean them, and that maintain them. However, most data provenance research focuses on technical rather than human points of origination and integration. With its emphasis on under-valued forms of labor, a feminist approach to visualization can help to render visible the bodies that shape and care for data at every stage of the process. This relates to the concept of provenance rhetoric in which authors of narrative visualizations cite data sources and methods which may help build credibility with the audience.” -- @dignazioFeministDataVisualization2016, p. 3
 
-- This project welcomes any type of contributions, not just coding. It follows the [all-contributors](https://allcontributors.org) specification as a way to recognise that, while crediting all contributors.
-- All contributors are listed in the project's README file. All the authors, maintainers and collaborators of this package are listed in the DESCRIPTION file, and the package's website (https://warwickcim.github.io/OSMdashboard/).
+This project welcomes any type of contributions, not just coding. It follows the [all-contributors](https://allcontributors.org) specification as a way to recognise that, while crediting all contributors.
+
+All contributors are listed in the project's [`README`](https://warwickcim.github.io/OSMdashboard/) file. All the authors, maintainers and collaborators of this package are listed in the DESCRIPTION file, and the package's website (https://warwickcim.github.io/OSMdashboard/).
 
 ## References
+
+
+[^geochicas]: Geochicas is a collective of feminist women linked to OpenStreetMap, originally Spanish-speaking, who work for women's empowerment and the reduction of the gender gap in OpenStreetMap communities and in communities associated with the world of free software and open data.
