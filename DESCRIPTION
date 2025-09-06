@@ -56,7 +56,12 @@ Imports:
     stringr,
     tidyr,
     tidyRSS,
-    WikipediR
+    WikipediR,
+    DBI,
+    duckdb,
+    readr,
+    sf,
+    reticulate
 Suggests: 
     knitr,
     rmarkdown,

@@ -9,6 +9,15 @@ format:
     nav-buttons:
         - icon: github
           href: https://github.com/WarwickCIM/OSMdashboard
+          
+params:
+  use_db_overlay: false #this allows the database to be used to populate the .csv files
+  db_path: "../database/osm_changesets.duckdb"  #please change if the DB is somewhere else
+  hashtags: ""  #formatted as "#HOT, #MissingMaps"
+  usernames: ""# formatted as "alice123,bob_mapper"
+  start: "" # formatted as "2023-01-01"
+  end: ""   # formatted as "2023-01-01"
+  bbox: "" #formatted a: "min_lat,min_lon,max_lat,max_lon" e.g "51.2,-0.5,51.8,0.3"     
 ---
 
 ```{r user input}
@@ -87,6 +96,161 @@ colour_fill <- "#fdb863"
 
 ```
 
+```{python}
+#| label: db-overlay
+#| echo: false
+#| cache: true
+#| message: false 
+#| warning: false
+# Creates data/db_overlay/* from DuckDB for the current group.
+#we add the cache:true in order to cache the overlay chunk so it doesn't re-run unless inputs change
+
+import os, sys, subprocess, csv
+
+def ensure(pkg):
+    try: __import__(pkg)
+    except ImportError: subprocess.check_call([sys.executable, "-m", "pip", "install", pkg])
+
+for p in ("duckdb","pandas","pyarrow"): ensure(p)
+
+import pandas as pd
+import duckdb
+
+#locate the database files at database/osm_changesets.duckdb and python.queries.py file
+DB_PATH = os.getenv("DUCKDB_PATH", "../database/osm_changesets.duckdb")
+QUERIES_PATH = "../python/queries.py"  # adjust if you put it elsewhere
+
+if not os.path.exists(DB_PATH):
+    raise RuntimeError(f"DuckDB not found at {DB_PATH}. Put the file in database/osm_changesets.duckdb or set DUCKDB_PATH.")
+
+#impor the relevant helper functions
+import importlib.util
+spec = importlib.util.spec_from_file_location("queries", QUERIES_PATH)
+if spec is None or spec.loader is None:
+    raise RuntimeError(f"Cannot import queries.py at {QUERIES_PATH}.")
+queries = importlib.util.module_from_spec(spec); spec.loader.exec_module(queries)
+
+#get group usernames from the repo
+# expects data/metadata/group_users.csv with column username
+users_csv = "data/metadata/group_users.csv"
+if not os.path.exists(users_csv):
+    raise RuntimeError("Expected group users at data/metadata/group_users.csv (with column 'username' or 'user').")
+
+uinfo = pd.read_csv(users_csv)
+name_col = "username" if "username" in uinfo.columns else ("user" if "user" in uinfo.columns else None)
+if name_col is None:
+    raise RuntimeError("user_info.csv must have a 'username' or 'user' column.")
+usernames = sorted({str(x).strip() for x in uinfo[name_col].dropna().tolist() if str(x).strip()})
+
+if not usernames:
+    raise RuntimeError("No usernames found in data/metadata/user_info.csv.")
+
+#optionally adda timeframe for the group
+start = end = None
+try:
+    gpath = "data/metadata/group_info.csv"
+    if os.path.exists(gpath):
+        gdf = pd.read_csv(gpath)
+        for col in ("start","start_date","from"):
+            if col in gdf.columns and pd.notna(gdf[col].iloc[0]): start = str(gdf[col].iloc[0])
+        for col in ("end","end_date","to"):
+            if col in gdf.columns and pd.notna(gdf[col].iloc[0]):   end   = str(gdf[col].iloc[0])
+except Exception:
+    pass  #time filters are not necessary but should be in group_info if so
+
+# query the database only for those users
+con = queries.connect(DB_PATH)
+
+#base changesets only for those users in the group
+where = ["user IN (" + ",".join(["?"]*len(usernames)) + ")"]
+params = usernames[:]
+
+if start:
+    where.append("created >= ?")
+    params.append(pd.to_datetime(start))
+if end:
+    where.append("created <= ?")
+    params.append(pd.to_datetime(end))
+
+sql = f"""
+SELECT
+  c.changeset_id AS id,
+  c.user,
+  c.uid,
+  c.created            AS created_at,
+  c.comment,
+  c.created_by,
+  c.imagery_used,
+  c.source,
+  c.min_lat, c.min_lon, c.max_lat, c.max_lon
+FROM changesets c
+WHERE {' AND '.join(where)}
+"""
+changesets = con.execute(sql, params).df()
+
+# attach hashtags for those ids
+if not changesets.empty:
+    sid = tuple(changesets["id"].tolist())
+    tags = con.execute(
+        f"SELECT changeset_id AS id, hashtag FROM changeset_hashtags WHERE changeset_id IN ({','.join(['?']*len(sid))})",
+        list(sid)
+    ).df()
+    if not tags.empty:
+        h = (tags.groupby("id")["hashtag"]
+                 .apply(lambda s: ";".join(sorted({x.strip() for x in s if x and x.strip()})))
+                 .reset_index(name="hashtags"))
+        changesets = changesets.merge(h, on="id", how="left")
+    else:
+        changesets["hashtags"] = ""
+else:
+    # still produce empty files to avoid downstream errors
+    changesets = pd.DataFrame(columns=[
+        "id","user","uid","created_at","comment","created_by","locale",
+        "imagery_used","source","min_lat","min_lon","max_lat","max_lon","hashtags"
+    ])
+
+# write overlay files if that was added as an optinoal parameter in running dashboard.qmd
+os.makedirs("data/db_overlay", exist_ok=True)
+
+changesets.to_csv("data/db_overlay/changesets_subset.csv", index=False)
+
+# explode hashtags into a tags table
+tags_rows = []
+for cid, s in zip(changesets["id"], changesets["hashtags"].fillna("")):
+    if not s: continue
+    for t in [x.strip() for x in s.split(";") if x.strip()]:
+        tags_rows.append((cid, "hashtags", t))
+pd.DataFrame(tags_rows, columns=["changeset","key","value"]).to_csv(
+    "data/db_overlay/changesets_tags_subset.csv", index=False
+)
+
+# minimal contributions summary for the group
+summary = (changesets.groupby("user", dropna=False)
+                        .size()
+                        .reset_index(name="map_changesets"))
+for col in ["account_age","comments","diary","map_notes","traces","wiki_edits"]:
+    summary[col] = 0
+summary.to_csv("data/db_overlay/contributions_summary_subset.csv", index=False)
+
+# pairs for the filterable table
+pairs = []
+for user, s in zip(changesets["user"], changesets["hashtags"].fillna("")):
+    if not s: continue
+    for t in [x.strip() for x in s.split(";") if x.strip()]:
+        pairs.append((user, t))
+pd.DataFrame(pairs, columns=["user","hashtag"]).to_csv(
+    "data/db_overlay/user_hashtag_pairs.csv", index=False
+)
+
+# progress log to verify correct functioning
+with open("data/db_overlay/_overlay_log.txt","w") as f:
+    f.write(f"Wrote overlay for {len(usernames)} users; "
+            f"{len(changesets)} changesets; "
+            f"{len(pairs)} user-hashtag pairs.\n")
+
+con.close()
+```
+
 ```{r load-datasets}
 group_info <- read.csv(paste0(base_path, "data/metadata/group_info.csv"))
 
@@ -102,6 +266,25 @@ changesets_tags <- read_csv(paste0(base_path, "data/raw/changesets_tags.csv"))
 wiki_contributions <- read.csv(paste0(base_path, "data/raw/wiki_contributions.csv"))
 
 contributions_summary <- read.csv(paste0(base_path, "data/raw/contributions_summary.csv"))
+
+# Optionally we swap the database overlay into some of the variables
+# This can be toggled via " -P use_db_overlay:true "
+
+use_overlay <- isTRUE(as.logical(params$use_db_overlay))
+
+if (use_overlay) {
+  if (file.exists("data/db_overlay/changesets_subset.csv")) {
+    changesets <- readr::read_csv("data/db_overlay/changesets_subset.csv", show_col_types = FALSE)
+    if ("user" %in% names(changesets)) changesets$user <- as.factor(changesets$user)
+  }
+  if (file.exists("data/db_overlay/changesets_tags_subset.csv")) {
+    changesets_tags <- readr::read_csv("data/db_overlay/changesets_tags_subset.csv", show_col_types = FALSE)
+  }
+  if (file.exists("data/db_overlay/contributions_summary_subset.csv")) {
+    contributions_summary <- read.csv("data/db_overlay/contributions_summary_subset.csv")
+  }
+  # We intentionally leave changeset_details and changesets_sf as the planet files as we don't have overlay   equivalents from the database. 
+}
 
 ```
 
