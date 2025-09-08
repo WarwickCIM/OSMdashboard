@@ -87,6 +87,7 @@ This project welcomes any type of contributions, not just coding. It follows the
     </tr>
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/hazelcyril"><img src="https://avatars.githubusercontent.com/u/188065610?v=4?s=100" width="100px;" alt="H CYRIL"/><br /><sub><b>H CYRIL</b></sub></a><br /><a href="https://github.com/WarwickCIM/OSMdashboard/commits?author=hazelcyril" title="Code">💻</a> <a href="https://github.com/WarwickCIM/OSMdashboard/commits?author=hazelcyril" title="Documentation">📖</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/makkos-lilly"><img src="https://avatars.githubusercontent.com/u/208373483?v=4?s=100" width="100px;" alt="makkos-lilly"/><br /><sub><b>makkos-lilly</b></sub></a><br /><a href="https://github.com/WarwickCIM/OSMdashboard/commits?author=makkos-lilly" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>
