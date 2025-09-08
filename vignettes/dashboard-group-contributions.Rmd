@@ -19,6 +19,7 @@ The main output of `{OSMdashboard}` is a dashboard that summarizes how a defined
 This dashboard is different from other tools displaying OSM contributions, such as Pascal Neis’ excellent [HDYC](https://hdyc.neis-one.org/) (from which we drew inspiration), insofar:
 
 - Its focus in on groups of people, not individuals. For the purposes of this dashboard, a group is a number of users that have shared interests or features (either self-reported or inferred).
+- It is informed by data feminism design principles (see dedicated `vignette("articles/feminist-design-principles")`).
 - It respects individual's privacy (see [FAQ below](#privacy)). 
 - It recognises that there are different ways of contributing to OSM beyond map contributions (see [FAQ below](#contribution-types)).
 - It is opensource: you can see the code (and contribute to it!) in this [GitHub repository](https://github.com/WarwickCIM/OSMdashboard).
@@ -114,6 +115,6 @@ The dashboard pulls data from the following sources:
 
 ### How are feminist design principles considered? 
 
-See dedidated vignette (to come): `vignette("articles/feminist-design-principles")`
+See dedidated vignette: `vignette("articles/feminist-design-principles")`
 
 [^quarto]: To do so, you will need quarto installed. See <https://quarto.org/docs/get-started/> for instructions.
