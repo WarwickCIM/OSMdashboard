@@ -16,22 +16,27 @@ Authors@R: c(
     person(
       "Selene", "Yang",
       role = "aut",
-      comment = c("As a member of Geochicas, Selene contributed to the ideation of the dashboard as part of the co-design process.", ORCID = "0000-0001-8501-8338")
+      comment = c("As a member of Geochicas, Selene contributed to the ideation of the dashboard as part of the co-design process that translated into this project.", ORCID = "0000-0001-8501-8338")
     ),
     person(
       "Silvia", "Rivera Alfaro",
       role = "aut",
-      comment = c("As a member of Geochicas, Silvia contributed to the ideation of the dashboard as part of the co-design process.", ORCID = "0000-0001-5971-7389")
+      comment = c("As a member of Geochicas, Silvia contributed to the ideation of the dashboard as part of the co-design process that translated into this project.", ORCID = "0000-0001-5971-7389")
     ),
     person(
       "Alejandra", "Canclini",
       role = "aut",
-      comment = c("As a member of Geochicas, Alejandra contributed to the ideation of the dashboard as part of the co-design process.")
+      comment = c("As a member of Geochicas, Alejandra contributed to the ideation of the dashboard as part of the co-design process that translated into this project.")
     ),
     person(
       "Hazel", "Cyril",
       role = "ctb",
-      comment = c("As a Research Assistant, Hazel contributed to improving the dashboards' data visualisations, with an emphasis on accessibility.")
+      comment = c("As a Research Assistant, Hazel contributed to improving the dashboards' data visualisations, focusing on accessibility.")
+    ),
+    person(
+      "Lilly", "Horváth-Makkos",
+      role = "ctb",
+      comment = c("As a Research Assistant, Lilly contributed to improving the data retrieval, focusing on efficiency.")
     ),
     person(
       "ESRC Digital Good Network",
