@@ -63,7 +63,10 @@ Imports:
     tidyRSS,
     WikipediR,
     glue,
-    stats
+    stats,
+    tibble,
+    magrittr,
+    rlang
 Suggests: 
     knitr,
     rmarkdown,
