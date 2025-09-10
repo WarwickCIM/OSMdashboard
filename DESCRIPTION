@@ -63,7 +63,9 @@ Imports:
     tibble,
     tidyr,
     tidyRSS,
-    WikipediR
+    WikipediR,
+    glue,
+    stats
 Suggests: 
     knitr,
     rmarkdown,
