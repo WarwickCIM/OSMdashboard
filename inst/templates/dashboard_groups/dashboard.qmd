@@ -206,102 +206,23 @@ Hours spent contributing (estimate based on time x changesets x features + time 
 ## Group Summary (Group Information, Group Description)
 
 
-::: {.callout-note}
 ```{r}
 
-describe_group <- function(contribs_tbl = NULL, edits_tbl = NULL, tags_tbl = NULL) {
-  #contribution frequency (changesets per day or edits per active day)
-  #This computes user contributions per day using changesets across the date range or edits 
-  #per active day, labelling < 1 as occasional, 1 - 9 as frequency and >= 10 as heavy.
-  #If it can't compute anything it defaults to the description 'active'
-  per_day <- NA_real_
-  if (!is.null(contribs_tbl) &&
-      all(c("changesets","first_edit","last_edit") %in% names(contribs_tbl))) {
-    rng  <- range(c(contribs_tbl$first_edit, contribs_tbl$last_edit), na.rm = TRUE)
-    days <- as.numeric(diff(rng)) + 1
-    total_changesets <- sum(contribs_tbl$changesets, na.rm = TRUE)
-    per_day <- ifelse(days > 0, total_changesets / days, total_changesets)
-  } else if (!is.null(edits_tbl) && "date" %in% names(edits_tbl)) {
-    per_day <- nrow(edits_tbl) / dplyr::n_distinct(edits_tbl$date)
-  }
-  freq <- dplyr::case_when(
-    is.na(per_day)   ~ "active",
-    per_day < 1      ~ "occasional",
-    per_day < 10     ~ "frequent",
-    TRUE             ~ "heavy"
-  )
+#| message: false
+#| warning: false
 
-  #activity type (adds / modifies / deletes and creators / repairers / improvers)
-  #looks at which action is most common in users. if the most common action is add/create
-  #then the user is a creator. if the most common action is modify/update, then the user
-  #is a repairer. if the most common action is delete/remove then the user is an improver.
-  type_word <- "contributors"
-  if (!is.null(edits_tbl) && "action" %in% names(edits_tbl)) {
-    top_act <- edits_tbl |> count(action) |> arrange(desc(n)) |> slice(1) |> pull(action)
-    type_word <- recode(top_act,
-      add = "creators", create = "creators",
-      modify = "repairers", update = "repairers",
-      delete = "improvers", remove = "improvers",
-      .default = "contributors"
-    )
-  } else if (!is.null(contribs_tbl) && all(c("adds","mods","dels") %in% names(contribs_tbl))) {
-    sums <- colSums(contribs_tbl[, c("adds","mods","dels")], na.rm = TRUE)
-    type_word <- c(adds = "creators", mods = "repairers", dels = "improvers")[names(which.max(sums))]
-  }
-
-  #experience level with average edits per user
-  #uses average edits per user (mean(n)) to label users as hobbyists from < 50 edits,
-  #pro-ams for 50-499 edits and professionals for >= 500 edits.
-  avg_edits <- NA_real_
-  if (!is.null(edits_tbl) && "user" %in% names(edits_tbl)) {
-    avg_edits <- edits_tbl |> count(user) |> summarise(m = mean(n)) |> pull(m)
-  } else if (!is.null(contribs_tbl) && "total_edits" %in% names(contribs_tbl)) {
-    avg_edits <- mean(contribs_tbl$total_edits, na.rm = TRUE)
-  }
-  exp_level <- if (is.na(avg_edits)) "hobbyists" else case_when(
-    avg_edits < 50   ~ "hobbyists",
-    avg_edits < 500  ~ "pro-ams",
-    TRUE             ~ "professionals"
-  )
-
-  #user interest areas. Takes the top 3 tag keys from the tags_summary or from the 
-  #edit counts. If nothing is available it just says "variety of features"
-  top_tags <- character(0)
-  if (!is.null(tags_tbl) && all(c("key","n") %in% names(tags_tbl))) {
-    top_tags <- tags_tbl |> arrange(desc(n)) |> slice_head(n = 3) |> pull(key)
-  } else if (!is.null(edits_tbl) && "key" %in% names(edits_tbl)) {
-    top_tags <- edits_tbl |> count(key) |> arrange(desc(n)) |> slice_head(n = 3) |> pull(key)
-  }
-  tags_text <- if (length(top_tags)) paste(top_tags, collapse = ", ") else "a variety of features"
-
-  #homogeniety using Gini edits per user. If the Gini index is > 0.6 then we label
-  #the group as homogenous. If it is between 0.4 to 0.6, then we label the group as somewhat
-  #concentrated. If it is <0.4 then the group is diverse. 
-  gini <- NA_real_
-  if (!is.null(edits_tbl) && "user" %in% names(edits_tbl)) {
-    v <- edits_tbl |> count(user) |> pull(n) |> sort()
-    if (length(v)) gini <- (2*sum(seq_along(v)*v)/sum(v)/length(v)) - (length(v)+1)/length(v)
-  }
-  homog <- if (is.na(gini)) "diverse" else if (gini > 0.6) "homogeneous"
-           else if (gini > 0.4) "somewhat concentrated" else "diverse"
-
-  #assembling the sentence together
-  glue::glue(
-    "This is a {homog} group of {freq} {type_word}, mostly {exp_level}, with interests in {tags_text}."
-  )
-}
-
-# try to use objects that already exist in your dashboard environment
 edits_tbl <- if (exists("edits")) edits else if (exists("elements")) elements else NULL
 tags_tbl  <- if (exists("tags_summary")) tags_summary else NULL
 
-cat(describe_group(
-  contribs_tbl = if (exists("contributions_summary")) contributions_summary else NULL,
-  edits_tbl    = edits_tbl,
-  tags_tbl     = tags_tbl
-))
+cat(
+  caption_group(
+    contribs_tbl = if (exists("contributions_summary")) contributions_summary else NULL,
+    edits_tbl    = edits_tbl,
+    tags_tbl     = tags_tbl
+  )
+)
+
 ```
-:::
 
 ## Some summaries {height=85%}
 
