@@ -130,17 +130,3 @@ caption_group <- function(df = NULL,
   ) |>
     base::as.character()
 }
-
-# ----- Optional: deprecation shims to avoid breaking existing calls -----
-
-#' @export
-describe_group <- function(contribs_tbl = NULL, edits_tbl = NULL, tags_tbl = NULL, df = NULL) {
-  .Deprecated("caption_group")
-  caption_group(df = df, contribs_tbl = contribs_tbl, edits_tbl = edits_tbl, tags_tbl = tags_tbl)
-}
-
-#' @export
-summarise_group_profile <- function(df) {
-  .Deprecated("caption_group")
-  caption_group(df = df)
-}
