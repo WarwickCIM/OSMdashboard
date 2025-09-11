@@ -11,7 +11,7 @@ knitr::opts_chunk$set(
 ```
 
 
-This package ins highly influenced by the [6 data feminism design principles](https://datafeminism.io/) proposed by Catherine d'Ignazio and Lauren F. Klein [-@dignazioFeministDataVisualization2016; -@dignazioDataFeminism2020]. In this page we explain how we are addressing each of these principles in the design of this package and its main output, the dashboard.
+This project has been highly influenced by the [6 data feminism design principles](https://datafeminism.io/) proposed by Catherine d'Ignazio and Lauren F. Klein [-@dignazioFeministDataVisualization2016; -@dignazioDataFeminism2020]. In this page we explain how we are addressing each of these principles in the design of this package and its main output, the dashboard.
 
 ## Rethinking Binaries
 
