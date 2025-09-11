@@ -7,6 +7,9 @@ has not yet been a stable, usable release suitable for the
 public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
 [![All Contributors](https://img.shields.io/github/all-contributors/WarwickCIM/OSMdashboard?color=ee8449&style=flat-square)](#contributors)
 [![R-CMD-check](https://github.com/WarwickCIM/OSMdashboard/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/WarwickCIM/OSMdashboard/actions/workflows/R-CMD-check.yaml)
+[![DOI](https://zenodo.org/badge/962627893.svg)](https://doi.org/10.5281/zenodo.17101642)
+
+
 
 <!-- badges: end -->
 
