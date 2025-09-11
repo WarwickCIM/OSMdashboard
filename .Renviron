@@ -1,1 +1,2 @@
 RETICULATE_PYTHON=D:/GitHub/OSMdashboard/.venv/Scripts/python.exe
+DUCKDB_PATH=D:/GitHub/OSMdashboard/database/osm_changesets.duckdb
