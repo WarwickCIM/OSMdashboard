@@ -16,7 +16,6 @@ get_contributions_osm_users <- function(users) {
   df <- data.frame()
 
   for (user in users) {
-    print(user)
 
     # Sanitise url
     user_clean <- gsub(" ", "%20", user)
@@ -77,16 +76,24 @@ get_contributions_osm_users <- function(users) {
     df <- df |>
       dplyr::bind_rows(user_df)
   }
-  df <- df |> dplyr::rename_with(~ gsub("\\s+", "_", .x))
 
   df <- df |>
-    dplyr::select(-`Send Message`) |>
     dplyr::rename(
       map_changesets = Edits,
       map_notes = `Map Notes`,
       traces = Traces,
       diary = Diary,
       comments = Comments
+    ) |> 
+    dplyr::select(
+      user, 
+      map_changesets, 
+      map_notes, 
+      traces, 
+      diary, 
+      comments, 
+      date_creation, 
+      date_last_map_edit
     )
 
   return(df)
