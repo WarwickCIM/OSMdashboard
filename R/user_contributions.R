@@ -76,7 +76,6 @@ get_contributions_osm_users <- function(users) {
     df <- df |>
       dplyr::bind_rows(user_df)
   }
-  df <- df |> dplyr::rename_with(~ gsub("\\s+", "_", .x))
 
   df <- df |>
     dplyr::rename(
