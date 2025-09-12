@@ -47,9 +47,5 @@ jobs:
 
       - uses: r-lib/actions/check-r-package@v2
         with:
-          args: 'c("--no-manual","--as-cran","--no-examples")'
-          error-on: '"error"'
-        env:
-          _R_CHECK_FORCE_SUGGESTS_: "false"
-          R_REMOTES_NO_ERRORS_FROM_WARNINGS: "true"
-
+          upload-snapshots: true
+          build_args: 'c("--no-manual","--compact-vignettes=gs+qpdf")'
