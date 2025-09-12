@@ -23,7 +23,9 @@ user, such as 'changesets', 'first_edit', 'last_edit', 'adds',
 \item{edits_tbl}{an optional raw edits table used when 'df' is not supplied.
 Should contain 'user', 'date', 'action', 'key', 'tag'..}
 
-\item{tags_tbl}{an optional tags summary with columns 'key' and 'n' (counts)
+\item{tags_tbl}{an optional tags summary with columns 'key' and 'n' (counts)}
+
+\item{max_names}{maximum number of names to include in the caption
 #'}
 }
 \value{
