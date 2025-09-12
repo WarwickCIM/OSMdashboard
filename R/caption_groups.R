@@ -41,7 +41,7 @@ caption_group <- function(df = NULL,
   if (!is.null(contribs_tbl) &&
       all(c("changesets", "first_edit", "last_edit") %in% base::names(contribs_tbl))) {
     rng  <- base::range(c(contribs_tbl$first_edit, contribs_tbl$last_edit), na.rm = TRUE)
-    days <- as.numeric(base::diff(rng)) + 1
+    days <- as.numeric(stats::diff(rng)) + 1
     total_changesets <- base::sum(contribs_tbl$changesets, na.rm = TRUE)
     per_day <- ifelse(days > 0, total_changesets / days, total_changesets)
   } else if (!is.null(df) && "date" %in% base::names(df)) {
