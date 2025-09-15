@@ -203,6 +203,27 @@ round(mean(contributions_summary$account_age), digits = 2)
 
 Hours spent contributing (estimate based on time x changesets x features + time * written words + time * delete words + time for discussion + time for ...)
 
+## Group Summary (Group Information, Group Description)
+
+
+```{r}
+
+#| message: false
+#| warning: false
+
+edits_tbl <- if (exists("edits")) edits else if (exists("elements")) elements else NULL
+tags_tbl  <- if (exists("tags_summary")) tags_summary else NULL
+
+cat(
+  caption_group(
+    contribs_tbl = if (exists("contributions_summary")) contributions_summary else NULL,
+    edits_tbl    = edits_tbl,
+    tags_tbl     = tags_tbl
+  )
+)
+
+```
+
 ## Some summaries {height=85%}
 
 ### User Stats {.tabset}
@@ -543,7 +564,7 @@ changesets_day_time <- changesets |>
   select(created_at) |>
   mutate(
     date = created_at,
-    month = ordered(month(date), labels = month.abb),
+    month = factor(as.integer(format(date, "%m")), levels = 1:12, labels = month.abb, ordered = TRUE),
     weekday = weekdays(date),
     weekday = forcats::fct_relevel(
       as.factor(weekday),

@@ -25,8 +25,8 @@ get_contributions_wiki <- function(users) {
     # wiki_contributions < map_df(test, tibble::as_tibble)
     if (!length(df_raw$query$usercontribs) == 0) {
       df_raw <- df_raw$query$usercontribs |>
-        purrr::map(as_tibble) |>
-        purrr::reduce(bind_rows)
+        purrr::map(tibble::as_tibble) |>
+        purrr::reduce(dplyr::bind_rows)
 
       df <- df |>
         dplyr::bind_rows(df_raw)
