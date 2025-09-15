@@ -24,19 +24,29 @@ changesets_details <- get_changesets_details(changesets$id)
 
 changesets_tags <- extract_and_combine_tags(changesets_details)
 
-write.csv(changesets, file = paste0(base_path, "data/raw/changesets.csv"),
-          row.names = FALSE)
+write.csv(
+  changesets,
+  file = paste0(base_path, "data/raw/changesets.csv"),
+  row.names = FALSE
+)
 
-sf::st_write(changesets, dsn = paste0(base_path, "data/raw/changesets.gpkg"),
-             append = FALSE)
+sf::st_write(
+  changesets,
+  dsn = paste0(base_path, "data/raw/changesets.gpkg"),
+  append = FALSE
+)
 
-write.csv(changesets_tags,
-          file = paste0(base_path, "data/raw/changesets_tags.csv"))
+write.csv(
+  changesets_tags,
+  file = paste0(base_path, "data/raw/changesets_tags.csv")
+)
 
 changesets_details |>
   dplyr::select(-tags, -members) |>
-  write.csv(file = paste0(base_path, "data/raw/changesets_details.csv"),
-            row.names = FALSE)
+  write.csv(
+    file = paste0(base_path, "data/raw/changesets_details.csv"),
+    row.names = FALSE
+  )
 
 
 # Wiki --------------------------------------------------------------------
@@ -50,7 +60,9 @@ wiki_contributions_n <- wiki_contributions |>
   mutate(user = tolower(user)) |>
   rename(wiki_edits = n)
 
-write.csv(wiki_contributions, paste0(base_path, "data/raw/wiki_contributions.csv"),
+write.csv(
+  wiki_contributions,
+  paste0(base_path, "data/raw/wiki_contributions.csv"),
   row.names = FALSE
 )
 
@@ -62,9 +74,10 @@ users_diaries <- osm_user_details |>
 
 contributions_diaries <- get_contributions_diaries(users_diaries)
 
-write.csv(contributions_diaries,
-          paste0(base_path, "data/raw/contributions_diaries.csv"),
-          row.names = FALSE
+write.csv(
+  contributions_diaries,
+  paste0(base_path, "data/raw/contributions_diaries.csv"),
+  row.names = FALSE
 )
 
 
@@ -75,14 +88,17 @@ contributions_summary <- osm_user_details |>
     user = tolower(user),
     account_age = as.integer(
       difftime(today(), date_creation, units = "days")
-    ) / 365,
+    ) /
+      365,
     map_activity_age = as.integer(
       difftime(date_last_map_edit, date_creation, units = "days")
-    ) / 365
+    ) /
+      365
   ) |>
   left_join(wiki_contributions_n, by = "user")
 
-write.csv(contributions_summary,
+write.csv(
+  contributions_summary,
   paste0(base_path, "data/raw/contributions_summary.csv"),
   row.names = FALSE
 )
