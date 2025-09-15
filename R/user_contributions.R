@@ -16,7 +16,6 @@ get_contributions_osm_users <- function(users) {
   df <- data.frame()
 
   for (user in users) {
-
     # Sanitise url
     user_clean <- gsub(" ", "%20", user)
 
@@ -84,15 +83,15 @@ get_contributions_osm_users <- function(users) {
       traces = Traces,
       diary = Diary,
       comments = Comments
-    ) |> 
+    ) |>
     dplyr::select(
-      user, 
-      map_changesets, 
-      map_notes, 
-      traces, 
-      diary, 
-      comments, 
-      date_creation, 
+      user,
+      map_changesets,
+      map_notes,
+      traces,
+      diary,
+      comments,
+      date_creation,
       date_last_map_edit
     )
 

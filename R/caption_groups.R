@@ -28,20 +28,28 @@
 #' )
 #' caption_group(df = df)
 
-caption_group <- function(df = NULL,
-                          contribs_tbl = NULL,
-                          edits_tbl = NULL,
-                          tags_tbl = NULL,
-                          max_names = 3L) {
-
+caption_group <- function(
+  df = NULL,
+  contribs_tbl = NULL,
+  edits_tbl = NULL,
+  tags_tbl = NULL,
+  max_names = 3L
+) {
   # Prefer df if provided; otherwise use edits_tbl
-  if (is.null(df)) df <- edits_tbl
+  if (is.null(df)) {
+    df <- edits_tbl
+  }
 
   # ---- contribution frequency (changesets/day or edits/active-day) ----
   per_day <- NA_real_
-  if (!is.null(contribs_tbl) &&
-      all(c("changesets", "first_edit", "last_edit") %in% names(contribs_tbl))) {
-    rng  <- range(c(contribs_tbl$first_edit, contribs_tbl$last_edit), na.rm = TRUE)
+  if (
+    !is.null(contribs_tbl) &&
+      all(c("changesets", "first_edit", "last_edit") %in% names(contribs_tbl))
+  ) {
+    rng <- range(
+      c(contribs_tbl$first_edit, contribs_tbl$last_edit),
+      na.rm = TRUE
+    )
     days <- as.numeric(diff(rng)) + 1
     total_changesets <- sum(contribs_tbl$changesets, na.rm = TRUE)
     per_day <- ifelse(days > 0, total_changesets / days, total_changesets)
@@ -52,9 +60,9 @@ caption_group <- function(df = NULL,
 
   freq <- dplyr::case_when(
     is.na(per_day) ~ "active",
-    per_day < 1          ~ "occasional",
-    per_day < 10         ~ "frequent",
-    TRUE                 ~ "heavy"
+    per_day < 1 ~ "occasional",
+    per_day < 10 ~ "frequent",
+    TRUE ~ "heavy"
   )
 
   # ---- activity type (creators / repairers / improvers) ----
@@ -67,14 +75,24 @@ caption_group <- function(df = NULL,
       dplyr::pull(action)
     type_word <- dplyr::recode(
       top_act,
-      add = "creators", create = "creators",
-      modify = "repairers", update = "repairers",
-      delete = "improvers", remove = "improvers",
+      add = "creators",
+      create = "creators",
+      modify = "repairers",
+      update = "repairers",
+      delete = "improvers",
+      remove = "improvers",
       .default = "contributors"
     )
-  } else if (!is.null(contribs_tbl) && all(c("adds","mods","dels") %in% names(contribs_tbl))) {
-    sums <- colSums(contribs_tbl[, c("adds","mods","dels")], na.rm = TRUE)
-    type_word <- c(adds="creators", mods="repairers", dels="improvers")[names(which.max(sums))]
+  } else if (
+    !is.null(contribs_tbl) &&
+      all(c("adds", "mods", "dels") %in% names(contribs_tbl))
+  ) {
+    sums <- colSums(contribs_tbl[, c("adds", "mods", "dels")], na.rm = TRUE)
+    type_word <- c(
+      adds = "creators",
+      mods = "repairers",
+      dels = "improvers"
+    )[names(which.max(sums))]
   }
 
   # ---- experience level (avg edits per user) ----
@@ -87,20 +105,24 @@ caption_group <- function(df = NULL,
   } else if (!is.null(contribs_tbl) && "total_edits" %in% names(contribs_tbl)) {
     avg_edits <- mean(contribs_tbl$total_edits, na.rm = TRUE)
   }
-  exp_level <- if (is.na(avg_edits)) "hobbyists" else dplyr::case_when(
-    avg_edits < 50   ~ "hobbyists",
-    avg_edits < 500  ~ "pro-ams",
-    TRUE             ~ "professionals"
-  )
+  exp_level <- if (is.na(avg_edits)) {
+    "hobbyists"
+  } else {
+    dplyr::case_when(
+      avg_edits < 50 ~ "hobbyists",
+      avg_edits < 500 ~ "pro-ams",
+      TRUE ~ "professionals"
+    )
+  }
 
   # ---- interests (top 3 tag keys) ----
   top_tags <- character(0)
-  if (!is.null(tags_tbl) && all(c("key","n") %in% names(tags_tbl))) {
+  if (!is.null(tags_tbl) && all(c("key", "n") %in% names(tags_tbl))) {
     top_tags <- tags_tbl |>
       dplyr::arrange(dplyr::desc(.data$n)) |>
       dplyr::slice_head(n = 3) |>
       dplyr::pull(.data$key)
-  } else if (!is.null(df) && any(c("key","tag") %in% names(df))) {
+  } else if (!is.null(df) && any(c("key", "tag") %in% names(df))) {
     tag_col <- if ("key" %in% names(df)) "key" else "tag"
     top_tags <- df |>
       dplyr::count(.data[[tag_col]], name = "n") |>
@@ -108,7 +130,11 @@ caption_group <- function(df = NULL,
       dplyr::slice_head(n = 3) |>
       dplyr::pull(1)
   }
-  tags_text <- if (length(top_tags)) paste(top_tags, collapse = ", ") else "a variety of features"
+  tags_text <- if (length(top_tags)) {
+    paste(top_tags, collapse = ", ")
+  } else {
+    "a variety of features"
+  }
 
   # ---- homogeneity (Gini on edits/user) ----
   gini <- NA_real_
@@ -122,8 +148,15 @@ caption_group <- function(df = NULL,
       gini <- (2 * sum(seq_len(n) * v) / sum(v) / n) - (n + 1) / n
     }
   }
-  homog <- if (is.na(gini)) "diverse" else if (gini > 0.6) "homogeneous"
-  else if (gini > 0.4) "somewhat concentrated" else "diverse"
+  homog <- if (is.na(gini)) {
+    "diverse"
+  } else if (gini > 0.6) {
+    "homogeneous"
+  } else if (gini > 0.4) {
+    "somewhat concentrated"
+  } else {
+    "diverse"
+  }
 
   # ---- final caption ----
   glue::glue(
