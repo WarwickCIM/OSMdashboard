@@ -49,19 +49,16 @@ BugReports: https://github.com/WarwickCIM/OSMdashboard/issues
 Imports: 
     cli,
     dplyr,
+    glue,
     lubridate,
     osmapiR,
     purrr,
     rvest,
     stringr,
+    tibble,
     tidyr,
     tidyRSS,
-    WikipediR,
-    glue,
-    stats,
-    tibble,
-    magrittr,
-    rlang
+    WikipediR
 Suggests: 
     knitr,
     rmarkdown,
