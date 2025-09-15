@@ -13,8 +13,9 @@
 #' @export
 #'
 get_contributors_changesets <- function(
-    users,
-    n_changesets = 100) {
+  users,
+  n_changesets = 100
+) {
   changesets <- data.frame()
 
   for (user in users) {
@@ -31,7 +32,8 @@ get_contributors_changesets <- function(
       changesets <- as.data.frame(tmp_changesets)
     } else {
       changesets <- dplyr::full_join(
-        changesets, as.data.frame(tmp_changesets),
+        changesets,
+        as.data.frame(tmp_changesets),
         by = intersect(names(changesets), names(tmp_changesets))
       )
     }
@@ -54,7 +56,6 @@ get_contributors_changesets <- function(
 #' @export
 #'
 get_changesets_details <- function(changeset_ids) {
-
   changesets_details <- data.frame()
   tags_used <- data.frame()
 
@@ -71,14 +72,11 @@ get_changesets_details <- function(changeset_ids) {
     #   mutate(changeset = changeset)
     #
 
-
     # tags_used <- tags_used |>
     # bind_rows(tmp.tags)
-
   }
 
   return(changesets_details)
-
 }
 
 #' Extract nested keys and values from changesets
@@ -95,10 +93,11 @@ get_changesets_details <- function(changeset_ids) {
 #' @export
 #'
 extract_and_combine_tags <- function(df) {
-
   # Check if the 'tags' column exists
   if (!"tags" %in% names(changesets_details)) {
-    stop("The 'tags' column is not present in the changesets_details dataframe.")
+    stop(
+      "The 'tags' column is not present in the changesets_details dataframe."
+    )
   }
 
   combined_tags <- df |>

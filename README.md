@@ -7,6 +7,9 @@ has not yet been a stable, usable release suitable for the
 public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
 [![All Contributors](https://img.shields.io/github/all-contributors/WarwickCIM/OSMdashboard?color=ee8449&style=flat-square)](#contributors)
 [![R-CMD-check](https://github.com/WarwickCIM/OSMdashboard/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/WarwickCIM/OSMdashboard/actions/workflows/R-CMD-check.yaml)
+[![DOI](https://zenodo.org/badge/962627893.svg)](https://doi.org/10.5281/zenodo.17101642)
+
+
 
 <!-- badges: end -->
 
@@ -16,7 +19,7 @@ public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostat
 
 The goal of OSMdashboard is help to understand how different groups of users contribute to OpenStreetMap (OSM). It does so by creating interactive dashboards that visualise OSM-data locally and anonymously, just by filling a `csv` file.
 
-This project follows d'Ignazio and Klein's feminist design principles and the visualisations produced may be useful for anyone interested in better understanding EDI considerations and the dynamics within OpenStreetMap community, including researchers, project managers, and community organizers.
+This project follows d'Ignazio and Klein's data feminism design principles (see dedicated `vignette("articles/feminist-design-principles")`) and the visualisations produced may be useful for anyone interested in better understanding EDI considerations and the dynamics within OpenStreetMap community, including researchers, project managers, and community organizers.
 
 ![Dashboard screenshot](man/figures/dashboard-screenshot.png)
 
@@ -87,6 +90,7 @@ This project welcomes any type of contributions, not just coding. It follows the
     </tr>
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/hazelcyril"><img src="https://avatars.githubusercontent.com/u/188065610?v=4?s=100" width="100px;" alt="H CYRIL"/><br /><sub><b>H CYRIL</b></sub></a><br /><a href="https://github.com/WarwickCIM/OSMdashboard/commits?author=hazelcyril" title="Code">💻</a> <a href="https://github.com/WarwickCIM/OSMdashboard/commits?author=hazelcyril" title="Documentation">📖</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/makkos-lilly"><img src="https://avatars.githubusercontent.com/u/208373483?v=4?s=100" width="100px;" alt="makkos-lilly"/><br /><sub><b>makkos-lilly</b></sub></a><br /><a href="https://github.com/WarwickCIM/OSMdashboard/commits?author=makkos-lilly" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>

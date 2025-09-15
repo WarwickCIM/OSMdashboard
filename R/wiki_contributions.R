@@ -45,7 +45,6 @@ get_contributions_wiki <- function(users) {
 #' @export
 #'
 calc_stats_contributions_wiki <- function(df) {
-
   n_users <- nlevels(as.factor(df$user))
 
   date_start <- min(df$timestamp)
@@ -56,24 +55,32 @@ calc_stats_contributions_wiki <- function(df) {
 
   contributions_size <- df |>
     dplyr::select(user, sizediff) |>
-    dplyr::mutate(additions = dplyr::case_when(sizediff > 0 ~ sizediff),
-                  deletions = dplyr::case_when(sizediff < 0 ~ sizediff)) |>
+    dplyr::mutate(
+      additions = dplyr::case_when(sizediff > 0 ~ sizediff),
+      deletions = dplyr::case_when(sizediff < 0 ~ sizediff)
+    ) |>
     dplyr::group_by(user) |>
     dplyr::summarise(dplyr::across(c(additions, deletions), mean, na.rm = TRUE))
 
-
   contributed_pages <- df |>
     dplyr::select(title, sizediff) |>
-    dplyr::mutate(sizediff = abs(sizediff),
-                  # Redact usernames
-                  title = dplyr::case_when(
-                    stringr::str_starts(title, "User:") ~ "User pages",
-                    .default = title)
-                  ) |>
+    dplyr::mutate(
+      sizediff = abs(sizediff),
+      # Redact usernames
+      title = dplyr::case_when(
+        stringr::str_starts(title, "User:") ~ "User pages",
+        .default = title
+      )
+    ) |>
     dplyr::count(title, wt = sizediff, sort = TRUE)
 
-  results <- list(n_users, date_start, date_end, contributions_size, contributed_pages)
+  results <- list(
+    n_users,
+    date_start,
+    date_end,
+    contributions_size,
+    contributed_pages
+  )
 
   return(results)
-
 }
