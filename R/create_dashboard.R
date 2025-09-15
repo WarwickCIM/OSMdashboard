@@ -46,14 +46,20 @@ create_dashboard <- function(path) {
   if (dir.exists(path)) {
     # Display a menu asking to confirm folder's overwrite
     cli::cli_alert_danger("The folder {path} already exists.")
-    choice <- menu(c("Overwrite", "Cancel"), title = "What would you like to do?")
-    
+    choice <- menu(
+      c("Overwrite", "Cancel"),
+      title = "What would you like to do?"
+    )
+
     # Handle the user's choice
-    if (choice == 2 || choice == 0) { # 2 = Cancel, 0 = No selection
-      cli::cli_alert_info("Operation cancelled. No files were copied to avoid overwriting folder.")
+    if (choice == 2 || choice == 0) {
+      # 2 = Cancel, 0 = No selection
+      cli::cli_alert_info(
+        "Operation cancelled. No files were copied to avoid overwriting folder."
+      )
       return(invisible(NULL)) # Exit the function without further execution
     }
-    
+
     # If the user selects "Overwrite", proceed
     cli::cli_alert_info("Overwritting the folder {path}/ ...")
   }
@@ -91,5 +97,7 @@ create_dashboard <- function(path) {
 
   absolute_path <- paste0(getwd(), "/", path)
 
-  cli::cli_alert_success("Dashboard scaffolded successfully at: {absolute_path}.")
+  cli::cli_alert_success(
+    "Dashboard scaffolded successfully at: {absolute_path}."
+  )
 }

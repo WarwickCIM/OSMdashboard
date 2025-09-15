@@ -16,7 +16,6 @@ get_contributions_osm_users <- function(users) {
   df <- data.frame()
 
   for (user in users) {
-
     print(user)
 
     # Sanitise url
@@ -33,7 +32,6 @@ get_contributions_osm_users <- function(users) {
       rvest::html_element(".secondary-actions ul") |> # Select the `ul` element under `.secondary-actions`
       rvest::html_elements("li") |> # Extract all `li` elements
       rvest::html_text(trim = TRUE) # Get the text content of each `li`
-
 
     # TODO: extract creation date.
     user_dates <- page |>
@@ -56,7 +54,12 @@ get_contributions_osm_users <- function(users) {
 
     # Convert the list of items into a dataframe
     user_df <- data.frame(item = list_items, stringsAsFactors = FALSE) |>
-      tidyr::separate(item, into = c("item", "value"), sep = "\\s\\s", extra = "merge") |>
+      tidyr::separate(
+        item,
+        into = c("item", "value"),
+        sep = "\\s\\s",
+        extra = "merge"
+      ) |>
       dplyr::mutate(
         item = stringr::str_trim(item),
         value = stringr::str_trim(value),
@@ -64,9 +67,12 @@ get_contributions_osm_users <- function(users) {
         value = as.numeric(value),
         user = user
       ) |>
-      tidyr::pivot_wider(id_cols = user, names_from = item, values_from = value) |>
+      tidyr::pivot_wider(
+        id_cols = user,
+        names_from = item,
+        values_from = value
+      ) |>
       dplyr::left_join(user_dates_df, by = dplyr::join_by(user))
-
 
     df <- df |>
       dplyr::bind_rows(user_df)
