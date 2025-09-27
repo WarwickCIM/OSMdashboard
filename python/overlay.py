@@ -99,7 +99,7 @@ def build_overlay(
         .tolist()
     )
 
-    # optional: extra usernames param
+    # extra usernames param
     param_usernames = [u.strip().lower() for u in _ensure_list(usernames) if u.strip()] if usernames else []
 
     # decide target users
@@ -129,7 +129,7 @@ def build_overlay(
         where = ["WHERE 1=1"]
         params: list = []
 
-        # users: compare on lower(c.user) to avoid case issues
+        #compare on lower(c.user) to avoid case issues
         placeholders_users = ",".join(["?"] * len(target_users))
         where.append(f"AND lower(c.user) IN ({placeholders_users})")
         params.extend(target_users)
@@ -236,10 +236,6 @@ def build_overlay(
         # add the other columns the dashboard expects (zeros for now)
         for col in ["account_age","comments","diary","map_notes","traces","wiki_edits"]:
             base_users_df[col] = 0
-
-        # IMPORTANT: keep 'user' in the original casing as listed in CSV if possible
-        # (we used lowercase for matching only).
-        # If your CSV has mixed case you want preserved, leave as is.
 
         base_users_df.to_csv(os.path.join(out_dir, "contributions_summary_subset.csv"), index=False)
 
