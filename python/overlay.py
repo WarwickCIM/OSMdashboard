@@ -1,25 +1,50 @@
-#overlay.py
 from __future__ import annotations
 import os
-import pandas as pd
-from typing import Iterable, Optional, Tuple, Union
-import duckdb
 import importlib.util
+from typing import Iterable, Optional, Tuple, Union, List
+import duckdb
+import pandas as pd
+
+
+# ---------- helpers ----------------------------------------------------------
 
 def _load_queries_module(queries_path: str):
     spec = importlib.util.spec_from_file_location("queries", queries_path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"Cannot import queries.py at {queries_path}.")
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    spec.loader.exec_module(module)  # type: ignore[attr-defined]
     return module
 
-def _ensure_list(x: Optional[Union[str, int, Iterable]]) -> list:
+def _ensure_list(x: Optional[Union[str, int, Iterable]]) -> List[str]:
     if x is None:
         return []
     if isinstance(x, (str, int)):
-        return [x]
-    return [i for i in x if i is not None]
+        return [str(x)]
+    return [str(i) for i in x if i is not None]
+
+def _abs(p: Optional[str]) -> Optional[str]:
+    if p is None:
+        return None
+    return p if os.path.isabs(p) else os.path.abspath(os.path.join(os.getcwd(), p))
+
+def _resolve_under_project(relpath: str) -> str:
+    """
+    Resolve a project-relative path like 'data/metadata/group_users.csv'.
+    Prefer CWD, otherwise try relative to repo root (parent of this file).
+    """
+    candidate = _abs(relpath)
+    if candidate and os.path.exists(candidate):
+        return candidate
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    alt = os.path.join(repo_root, relpath)
+    if os.path.exists(alt):
+        return alt
+    # last try: stay with candidate (even if missing) so errors are clear
+    return candidate
+
+# ---------- core -------------------------------------------------------------
+
 
 def build_overlay(
     *,
@@ -28,69 +53,86 @@ def build_overlay(
     group_users_csv: str = "data/metadata/group_users.csv",
     group_info_csv: str = "data/metadata/group_info.csv",
     out_dir: str = "data/db_overlay",
-    usernames: Optional[Iterable[str]] = None,
-    hashtags: Optional[Iterable[str]] = None,
-    start: Optional[str] = None,
-    end: Optional[str] = None,
+    usernames: Optional[Iterable[str]] = None,      # optional extras
+    hashtags: Optional[Iterable[str]] = None,       # optional filter
+    start: Optional[str] = None,                    # optional filter
+    end: Optional[str] = None,                      # optional filter
     bbox: Optional[Tuple[float, float, float, float]] = None,  # (min_lat,min_lon,max_lat,max_lon)
+    strict_group_only: bool = True,                 # ONLY users from group_users.csv
+    include_all_group_users: bool = True,           # include zeros in summary
+    use_group_info_dates: bool = False,             # only read dates from group_info if True
 ) -> None:
     """
     Query DuckDB for the current group and write overlay CSVs into out_dir:
-      - changesets_subset.csv
-      - changesets_tags_subset.csv
-      - contributions_summary_subset.csv
+      - changesets_subset.csv  (only for selected users)
+      - changesets_tags_subset.csv (only hashtags exploded)
+      - contributions_summary_subset.csv (one row per group user if include_all_group_users=True)
       - user_hashtag_pairs.csv
       - _overlay_log.txt
     """
 
-    #load the helper functions
+    # normalize paths
+    db_path        = _abs(db_path) or db_path
+    queries_path   = _resolve_under_project(queries_path)
+    group_users_csv= _resolve_under_project(group_users_csv)
+    group_info_csv = _resolve_under_project(group_info_csv)
+    out_dir        = _resolve_under_project(out_dir)
+
+    # load queries module (provides .connect())
     queries = _load_queries_module(queries_path)
 
-    #usernames as union of CSV and provided param
+    # read group users (supports column name 'username' or 'user')
     if not os.path.exists(group_users_csv):
-        raise RuntimeError(
-            f"Expected group users at {group_users_csv} with column 'username' or 'user'."
-        )
+        raise RuntimeError(f"Expected group users at {group_users_csv} with column 'username' or 'user'.")
     uinfo = pd.read_csv(group_users_csv)
     name_col = "username" if "username" in uinfo.columns else ("user" if "user" in uinfo.columns else None)
     if name_col is None:
         raise RuntimeError("group_users.csv must have a 'username' or 'user' column.")
-    csv_usernames = [str(x).strip() for x in uinfo[name_col].dropna().tolist() if str(x).strip()]
 
-    param_usernames = [u.strip() for u in _ensure_list(usernames) if str(u).strip()]
-    all_usernames = sorted(set(csv_usernames) | set(param_usernames))
+    csv_usernames = (
+        uinfo[name_col]
+        .astype(str)
+        .str.strip()
+        .replace({"": None})
+        .dropna()
+        .str.lower()   # case-insensitive matching
+        .tolist()
+    )
 
-    if not all_usernames:
-        raise RuntimeError("No usernames found in group_users.csv or params.")
+    # optional: extra usernames param
+    param_usernames = [u.strip().lower() for u in _ensure_list(usernames) if u.strip()] if usernames else []
 
-    #optional start and end from group_info.csv, otherwise overridden 
-    if os.path.exists(group_info_csv):
+    # decide target users
+    target_users = sorted(set(csv_usernames)) if strict_group_only else sorted(set(csv_usernames) | set(param_usernames))
+    if not target_users:
+        raise RuntimeError("No usernames found (after normalization).")
+
+    # optionally pull start/end from group_info.csv
+    if use_group_info_dates and os.path.exists(group_info_csv):
         try:
             gdf = pd.read_csv(group_info_csv)
             if start is None:
                 for col in ("start","start_date","from"):
                     if col in gdf.columns and pd.notna(gdf[col].iloc[0]):
-                        start = str(gdf[col].iloc[0])
-                        break
+                        start = str(gdf[col].iloc[0]); break
             if end is None:
                 for col in ("end","end_date","to"):
                     if col in gdf.columns and pd.notna(gdf[col].iloc[0]):
-                        end = str(gdf[col].iloc[0])
-                        break
+                        end = str(gdf[col].iloc[0]); break
         except Exception:
             pass
 
-    # connect to the database
+    # connect
     con = queries.connect(db_path)
     try:
-        # base changesets for selected users with optional date/bbox/hashtags
+        # WHERE building (user filter always on)
         where = ["WHERE 1=1"]
         params: list = []
 
-        #always filter users
-        placeholders_users = ",".join(["?"] * len(all_usernames))
-        where.append(f"AND c.user IN ({placeholders_users})")
-        params.extend(all_usernames)
+        # users: compare on lower(c.user) to avoid case issues
+        placeholders_users = ",".join(["?"] * len(target_users))
+        where.append(f"AND lower(c.user) IN ({placeholders_users})")
+        params.extend(target_users)
 
         # dates
         if start:
@@ -100,23 +142,24 @@ def build_overlay(
             where.append("AND c.created <= ?")
             params.append(pd.to_datetime(end))
 
-        #bbox on centroid
+        # bbox on centroid
         if bbox:
             min_lat, min_lon, max_lat, max_lon = bbox
-            where.append("AND ( (c.min_lat + c.max_lat)/2.0 ) BETWEEN ? AND ?")
-            where.append("AND ( (c.min_lon + c.max_lon)/2.0 ) BETWEEN ? AND ?")
+            where.append("AND ((c.min_lat + c.max_lat)/2.0) BETWEEN ? AND ?")
+            where.append("AND ((c.min_lon + c.max_lon)/2.0) BETWEEN ? AND ?")
             params.extend([min_lat, max_lat, min_lon, max_lon])
 
-        #hashtags filter (restricts which changesets we fetch)
+        # optional hashtag filter
         join_hashtags = ""
         if hashtags:
-            tags = [h.strip() for h in hashtags if h and str(h).strip()]
+            tags = [h.strip() for h in _ensure_list(hashtags) if h.strip()]
             if tags:
                 join_hashtags = "JOIN changeset_hashtags h ON h.changeset_id = c.changeset_id"
                 placeholders_tags = ",".join(["?"] * len(tags))
                 where.append(f"AND h.hashtag IN ({placeholders_tags})")
                 params.extend(tags)
 
+        # fetch changesets for the group users
         sql = f"""
         SELECT
           c.changeset_id AS id,
@@ -134,20 +177,19 @@ def build_overlay(
         """
         changesets = con.execute(sql, params).df()
 
-        #attach hashtags column
+        # attach hashtags column from changeset_hashtags
         if not changesets.empty:
-            sid = tuple(changesets["id"].tolist())
-            tag_params = list(sid)
+            sid = changesets["id"].tolist()
             tag_sql = f"""
                 SELECT changeset_id AS id, hashtag
                 FROM changeset_hashtags
                 WHERE changeset_id IN ({','.join(['?']*len(sid))})
             """
-            tags_df = con.execute(tag_sql, tag_params).df()
+            tags_df = con.execute(tag_sql, sid).df()
             if not tags_df.empty:
                 h = (
                     tags_df.groupby("id")["hashtag"]
-                    .apply(lambda s: ";".join(sorted({x.strip() for x in s if x and str(x).strip()})))
+                    .apply(lambda s: ";".join(sorted({str(x).strip() for x in s if str(x).strip()})))
                     .reset_index(name="hashtags")
                 )
                 changesets = changesets.merge(h, on="id", how="left")
@@ -161,13 +203,18 @@ def build_overlay(
                 ]
             )
 
-        #write the overlay outputs
+        # convenience lon/lat for centroids in R
+        if not changesets.empty:
+            changesets["lon"] = (changesets["min_lon"] + changesets["max_lon"]) / 2.0
+            changesets["lat"] = (changesets["min_lat"] + changesets["max_lat"]) / 2.0
+
+        # write overlay dir
         os.makedirs(out_dir, exist_ok=True)
         changesets.to_csv(os.path.join(out_dir, "changesets_subset.csv"), index=False)
 
-        #explode the hashtags into changesets_tags_subset.csv
+        # explode hashtags -> changesets_tags_subset.csv (only key='hashtags')
         tags_rows = []
-        for cid, s in zip(changesets["id"], changesets["hashtags"].fillna("")):
+        for cid, s in zip(changesets.get("id", []), changesets.get("hashtags", pd.Series([], dtype=str)).fillna("")):
             if not s:
                 continue
             for t in [x.strip() for x in s.split(";") if x.strip()]:
@@ -176,35 +223,51 @@ def build_overlay(
             os.path.join(out_dir, "changesets_tags_subset.csv"), index=False
         )
 
-        #minimal contributions summary
-        summary = (
-            changesets.groupby("user", dropna=False)
-            .size()
-            .reset_index(name="map_changesets")
-        )
-        for col in ["account_age","comments","diary","map_notes","traces","wiki_edits"]:
-            summary[col] = 0
-        summary.to_csv(os.path.join(out_dir, "contributions_summary_subset.csv"), index=False)
+        # build contributions summary
+        # start with all group users (if include_all_group_users)
+        base_users_df = pd.DataFrame({"user": [u for u in target_users]})
+        if not changesets.empty:
+            counts = changesets.groupby(changesets["user"].str.lower()).size().rename("map_changesets")
+            # map back to original casing (lowercase join)
+            base_users_df["map_changesets"] = base_users_df["user"].map(counts).fillna(0).astype(int)
+        else:
+            base_users_df["map_changesets"] = 0
 
-        #user-hashtag pairs
+        # add the other columns the dashboard expects (zeros for now)
+        for col in ["account_age","comments","diary","map_notes","traces","wiki_edits"]:
+            base_users_df[col] = 0
+
+        # IMPORTANT: keep 'user' in the original casing as listed in CSV if possible
+        # (we used lowercase for matching only).
+        # If your CSV has mixed case you want preserved, leave as is.
+
+        base_users_df.to_csv(os.path.join(out_dir, "contributions_summary_subset.csv"), index=False)
+
+        # user-hashtag pairs (only for those that actually had hashtags)
         pairs = []
-        for user, s in zip(changesets["user"], changesets["hashtags"].fillna("")):
-            if not s:
-                continue
-            for t in [x.strip() for x in s.split(";") if x.strip()]:
-                pairs.append((user, t))
+        if not changesets.empty and "hashtags" in changesets.columns:
+            for user, s in zip(changesets["user"], changesets["hashtags"].fillna("")):
+                if not s:
+                    continue
+                for t in [x.strip() for x in s.split(";") if x.strip()]:
+                    pairs.append((user, t))
         pd.DataFrame(pairs, columns=["user","hashtag"]).to_csv(
             os.path.join(out_dir, "user_hashtag_pairs.csv"), index=False
         )
 
-        with open(os.path.join(out_dir, "_overlay_log.txt"), "w") as f:
+        # log
+        with open(os.path.join(out_dir, "_overlay_log.txt"), "w", encoding="utf-8") as f:
             f.write(
-                f"Overlay written\n"
-                f"- users: {len(all_usernames)}\n"
+                "Overlay written\n"
+                f"- users_from_group_csv: {len(csv_usernames)}\n"
+                f"- users_param (ignored={strict_group_only}): {len(param_usernames)}\n"
+                f"- target_users_used: {len(target_users)}\n"
                 f"- changesets: {len(changesets)}\n"
                 f"- user-hashtag pairs: {len(pairs)}\n"
                 f"- filters: start={start}, end={end}, bbox={bbox}, hashtags={hashtags}\n"
                 f"- db_path: {db_path}\n"
+                f"- group_users_csv: {group_users_csv}\n"
             )
+
     finally:
         con.close()

@@ -2,6 +2,7 @@
 
 export(calc_stats_contributions_wiki)
 export(categorise_keys)
+export(connect_osm_db)
 export(create_dashboard)
 export(extract_and_combine_tags)
 export(get_changesets_details)

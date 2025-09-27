@@ -17,8 +17,6 @@ get_contributions_osm_users <- function(users) {
 
   for (user in users) {
 
-    print(user)
-
     # Sanitise url
     user_clean <- gsub(" ", "%20", user)
 

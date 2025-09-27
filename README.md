@@ -57,13 +57,25 @@ This package uses quarto, which is is already installed with RStudio and Positro
 
 ## Usage
 
+## Usage WITHOUT database
+
 1. Create the dashboard folder structure by calling `create_dashboard()`.
 2. Edit the `data/group_info.csv` and `data/group_users.csv` files to add your groups and users.
 3. Run `data_retrieval.R` to retrieve the data from OSM.
-4. Render `dashboard.qmd` to generate the dashboard.
+4. Render `dashboard.qmd` to generate the dashboard. Do this by running `quarto render dashboard.qmd`.
+
+## Usage WITH database
+
+In your main directory, the database must be called `osm_changesets.duckdb` and must be stored in a subdirectory named `database`.
+
+1. Create the dashboard folder structure by calling `create_dashboard()`.
+2. Edit the `data/group_info.csv` and `data/group_users.csv` files to add your groups and users.
+3. Run `data_retrieval.R` to retrieve the data from OSM.
+4. Run `quarto render dashboard.qmd -P use_db_overlay:true`.
+
+The `use_db_overlay:true` parameter ensures that all information within the database is loaded and used in place of information from APIs in the dashboard.
 
 Refer to the `vignette("dashboard-group-contributions")` for more details.
-
 
 ## Contributors
 
