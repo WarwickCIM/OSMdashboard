@@ -48,9 +48,9 @@ import pandas as pd
 from typing import Iterable, Optional, Tuple, Union
 import os
 from datetime import datetime
-# os.makedirs("QueryResults", exist_ok=True)
+os.makedirs("QueryResults", exist_ok=True)
 
-# #If you have a different name for your database, plesae change it here
+#If you have a different name for your database, plesae change it here
 DB_PATH_DEFAULT = "osm_changesets.duckdb"
 
 # Helper functions to insure inputs are in list formats
@@ -104,30 +104,137 @@ def connect(db_path: str = DB_PATH_DEFAULT):
     """Return a DuckDB connection (caller can reuse it and close when done)."""
     return duckdb.connect(db_path, read_only=True)
 
-
-#These are the queries. Additional filters (above) are added to these queries depending on the arguments given
-
-def get_users_for_hashtag(
-    hashtag: Union[str, Iterable[str]],
+def get_changesets_for_hashtags(
     *,
+    hashtag: Optional[Union[str, Iterable[str]]] = None,
+    like: Optional[Union[str, Iterable[str]]] = None,
     start_date: Optional[Union[str, pd.Timestamp]] = None,
     end_date: Optional[Union[str, pd.Timestamp]] = None,
-    bbox: Optional[Tuple[float,float,float,float]] = None,  # (min_lat, min_lon, max_lat, max_lon)
+    bbox: Optional[Tuple[float,float,float,float]] = None,
+    order_by: Optional[str] = "created_at DESC",
+    limit: Optional[int] = None,
+    db_path: str = DB_PATH_DEFAULT,
+    to_csv: Optional[str] = None,
+) -> pd.DataFrame:
+    """
+    DISTINCT changesets whose hashtags match given tokens and/or LIKE patterns.
+    Returns one row per changeset with aggregated ';'-joined hashtags.
+    """
+    exact = _ensure_list(hashtag) or []
+    like_patterns = [str(s) for s in (_ensure_list(like) or []) if str(s).strip()]
+
+    con = connect(db_path)
+    try:
+        where_tags = ["WHERE 1=1"]
+        params: list = []
+
+        # Build tag conditions for the changeset_hashtags table
+        tag_conds = []
+        if exact:
+            exact = [str(s) for s in exact]
+            with_hash    = [s for s in exact if s.startswith("#")]
+            without_hash = [s for s in exact if not s.startswith("#")]
+
+            sub = []
+            if without_hash:
+                ph = ",".join(["?"] * len(without_hash))
+                sub.append(f"hashtag IN ({ph})")
+                params.extend(without_hash)
+            if with_hash:
+                ph = ",".join(["?"] * len(with_hash))
+                sub.append(f"hashtag_raw IN ({ph})")
+                params.extend(with_hash)
+            if sub:
+                tag_conds.append("(" + " OR ".join(sub) + ")")
+
+        for p in like_patterns:
+            tag_conds.append("(hashtag LIKE ? OR hashtag_raw LIKE ?)")
+            params.extend([p, p])
+
+        if tag_conds:
+            where_tags.append("AND (" + " OR ".join(tag_conds) + ")")
+
+        # Collect candidate changeset_ids by tag filter, then fetch base rows
+        sql = f"""
+        WITH wanted AS (
+          SELECT DISTINCT changeset_id
+          FROM changeset_hashtags
+          {' '.join(where_tags)}
+        ),
+        base AS (
+          SELECT DISTINCT
+            c.changeset_id, c.user, c.uid, c.created, c.comment,
+            c.created_by, c.imagery_used, c.source,
+            c.min_lat, c.min_lon, c.max_lat, c.max_lon
+          FROM changesets c
+          JOIN wanted w USING (changeset_id)
+          WHERE 1=1
+        """
+        # dates & bbox apply to the changeset itself
+        if start_date is not None:
+            sql += " AND c.created >= ?"
+            params.append(pd.to_datetime(start_date))
+        if end_date is not None:
+            sql += " AND c.created <= ?"
+            params.append(pd.to_datetime(end_date))
+        if bbox:
+            min_lat, min_lon, max_lat, max_lon = bbox
+            sql += " AND ((c.min_lat + c.max_lat)/2.0) BETWEEN ? AND ?"
+            sql += " AND ((c.min_lon + c.max_lon)/2.0) BETWEEN ? AND ?"
+            params.extend([min_lat, max_lat, min_lon, max_lon])
+        sql += """
+        ),
+        tags AS (
+          SELECT t.changeset_id, string_agg(t.hashtag, ';') AS hashtags
+          FROM (
+            SELECT DISTINCT changeset_id, hashtag
+            FROM changeset_hashtags
+            WHERE changeset_id IN (SELECT changeset_id FROM base)
+          ) t
+          GROUP BY t.changeset_id
+        )
+        SELECT
+          b.changeset_id AS id, b.user, b.uid, b.created AS created_at,
+          b.comment, b.created_by, b.imagery_used, b.source,
+          b.min_lat, b.min_lon, b.max_lat, b.max_lon,
+          COALESCE(tags.hashtags, '') AS hashtags
+        FROM base b
+        LEFT JOIN tags USING (changeset_id)
+        """
+        sql += _order_and_limit(order_by, limit)
+
+        df = con.execute(sql, params).df()
+        if to_csv:
+            df.to_csv(to_csv, index=False)
+        return df
+    finally:
+        con.close()
+
+def get_users_for_hashtag(
+    hashtag: Union[str, Iterable[str]] = None,
+    *,
+    like: Optional[Union[str, Iterable[str]]] = None,
+    start_date: Optional[Union[str, pd.Timestamp]] = None,
+    end_date: Optional[Union[str, pd.Timestamp]] = None,
+    bbox: Optional[Tuple[float,float,float,float]] = None,
     order_by: Optional[str] = "n DESC",
     limit: Optional[int] = None,
     db_path: str = DB_PATH_DEFAULT,
     to_csv: Optional[str] = None,
 ) -> pd.DataFrame:
-    
-    #This returns users who used a given hashtag(s), optionally filtered by a date range and bounding box.
-    #Counts per user are aggregated.
-    hashtags = _ensure_list(hashtag)
+    """
+    Users who used given hashtags and/or LIKE patterns.
+    - hashtag: exact tokens (as given; case and leading '#' are respected)
+    - like: SQL LIKE patterns (applied to BOTH hashtag and hashtag_raw)
+    """
+    exact = _ensure_list(hashtag) or []
+    like_patterns = [str(s) for s in (_ensure_list(like) or []) if str(s).strip()]
+
     con = connect(db_path)
     try:
         where = ["WHERE 1=1"]
-        params = []
+        params: list = []
 
-        # join to changesets for bbox + created
         sql = """
         SELECT
           h.uid,
@@ -139,9 +246,36 @@ def get_users_for_hashtag(
         JOIN changesets c USING (changeset_id)
         """
 
-        _add_in_clause(where, params, "h.hashtag", hashtags, cast=None)
+        # Build tag conditions (exact + like) without normalization
+        tag_conds = []
+        if exact:
+            exact = [str(s) for s in exact]
+            with_hash    = [s for s in exact if s.startswith("#")]
+            without_hash = [s for s in exact if not s.startswith("#")]
+
+            sub = []
+            if without_hash:
+                ph = ",".join(["?"] * len(without_hash))
+                sub.append(f"h.hashtag IN ({ph})")          # matches normalized tokens
+                params.extend(without_hash)
+            if with_hash:
+                ph = ",".join(["?"] * len(with_hash))
+                sub.append(f"h.hashtag_raw IN ({ph})")      # matches original text with '#'
+                params.extend(with_hash)
+            if sub:
+                tag_conds.append("(" + " OR ".join(sub) + ")")
+
+        for p in like_patterns:
+            tag_conds.append("(h.hashtag LIKE ? OR h.hashtag_raw LIKE ?)")
+            params.extend([p, p])
+
+        if tag_conds:
+            where.append("AND (" + " OR ".join(tag_conds) + ")")
+
         _add_date_range(where, params, "h.created", start_date, end_date)
-        _add_bbox(where, params, "(c.min_lat + c.max_lat)/2.0", "(c.min_lon + c.max_lon)/2.0", bbox)
+        _add_bbox(where, params,
+                  "(c.min_lat + c.max_lat)/2.0", "(c.min_lon + c.max_lon)/2.0",
+                  bbox)
 
         sql += " " + " ".join(where) + " GROUP BY h.uid, h.user "
         sql += _order_and_limit(order_by, limit)
@@ -153,6 +287,74 @@ def get_users_for_hashtag(
     finally:
         con.close()
 
+def get_changesets_for_comment(
+    *,
+    contains: Optional[Union[str, Iterable[str]]] = None,   # tokens -> ILIKE '%token%'
+    like: Optional[Union[str, Iterable[str]]] = None,       #raw LIKE patterns
+    start_date: Optional[Union[str, pd.Timestamp]] = None,
+    end_date: Optional[Union[str, pd.Timestamp]] = None,
+    bbox: Optional[Tuple[float,float,float,float]] = None,
+    order_by: Optional[str] = "created_at DESC",
+    limit: Optional[int] = None,
+    db_path: str = DB_PATH_DEFAULT,
+    to_csv: Optional[str] = None,
+) -> pd.DataFrame:
+    con = connect(db_path)
+    try:
+        where = ["WHERE 1=1"]
+        params: list = []
+
+        #comment token contains (case-insensitive)
+        tokens = _ensure_list(contains) or []
+        for t in tokens:
+            where.append("AND c.comment ILIKE ?")
+            params.append(f"%{str(t)}%")
+
+        #raw LIKE patterns for comment (if you plain words passed, they will still be treated as %word%)
+        pats = _ensure_list(like) or []
+        for p in pats:
+            p = str(p)
+            if "%" not in p:
+                p = f"%{p}%"
+            where.append("AND c.comment LIKE ?")
+            params.append(p)
+
+        _add_date_range(where, params, "c.created", start_date, end_date)
+        _add_bbox(where, params, "((c.min_lat + c.max_lat)/2.0)", "((c.min_lon + c.max_lon)/2.0)", bbox)
+
+        sql = """
+        WITH base AS (
+          SELECT DISTINCT
+            c.changeset_id, c.user, c.uid, c.created, c.comment,
+            c.created_by, c.imagery_used, c.source,
+            c.min_lat, c.min_lon, c.max_lat, c.max_lon
+          FROM changesets c
+          """ + " ".join(where) + """
+        ),
+        tags AS (
+          SELECT t.changeset_id, string_agg(t.hashtag, ';') AS hashtags
+          FROM (
+            SELECT DISTINCT changeset_id, hashtag
+            FROM changeset_hashtags
+            WHERE changeset_id IN (SELECT changeset_id FROM base)
+          ) t
+          GROUP BY t.changeset_id
+        )
+        SELECT
+          b.changeset_id AS id, b.user, b.uid, b.created AS created_at,
+          b.comment, b.created_by, b.imagery_used, b.source,
+          b.min_lat, b.min_lon, b.max_lat, b.max_lon,
+          COALESCE(tags.hashtags, '') AS hashtags
+        FROM base b
+        LEFT JOIN tags USING (changeset_id)
+        """ + _order_and_limit(order_by, limit)
+
+        df = con.execute(sql, params).df()
+        if to_csv:
+            df.to_csv(to_csv, index=False)
+        return df
+    finally:
+        con.close()
 
 def get_hashtags_for_users(
     *,
@@ -505,6 +707,96 @@ def count_hashtag(
     finally:
         con.close()
 
+def get_distinct_changesets_for_users(
+    usernames: Union[str, Iterable[str]],
+    *,
+    start_date: Optional[Union[str, pd.Timestamp]] = None,
+    end_date: Optional[Union[str, pd.Timestamp]] = None,
+    bbox: Optional[Tuple[float,float,float,float]] = None,  # (min_lat, min_lon, max_lat, max_lon) on centroid
+    limit: Optional[int] = None,
+    db_path: str = DB_PATH_DEFAULT,
+    to_csv: Optional[str] = None,
+) -> pd.DataFrame:
+    """
+    Return DISTINCT changesets for the given usernames (case-insensitive),
+    with hashtags aggregated into a single ';' separated string per changeset.
+    Optional date and bbox filters apply to the changeset's created timestamp and centroid.
+
+    Columns returned:
+      id, user, uid, created_at, comment, created_by, imagery_used, source,
+      min_lat, min_lon, max_lat, max_lon, hashtags
+    """
+    names = _ensure_list(usernames)
+    if not names:
+        return pd.DataFrame(columns=[
+            "id","user","uid","created_at","comment","created_by","imagery_used",
+            "source","min_lat","min_lon","max_lat","max_lon","hashtags"
+        ])
+
+    con = connect(db_path)
+    try:
+        where = ["WHERE 1=1"]
+        params: list = []
+
+        # filter by usernames (case-insensitive)
+        _add_in_clause(where, params, "lower(c.user)", [n.lower() for n in names], cast=None)
+
+        # optional filters
+        _add_date_range(where, params, "c.created", start_date, end_date)
+        _add_bbox(where, params,
+                  "((c.min_lat + c.max_lat)/2.0)", "((c.min_lon + c.max_lon)/2.0)",
+                  bbox)
+
+        #DISTINCT base set of changesets for those users
+        #then LEFT JOIN aggregated hashtags (distinct) to avoid row multiplication
+        sql = f"""
+        WITH base AS (
+            SELECT DISTINCT
+                c.changeset_id,
+                c.user,
+                c.uid,
+                c.created,
+                c.comment,
+                c.created_by,
+                c.imagery_used,
+                c.source,
+                c.min_lat, c.min_lon, c.max_lat, c.max_lon
+            FROM changesets c
+            {' '.join(where)}
+        ),
+        tags AS (
+            SELECT t.changeset_id,
+                   string_agg(t.hashtag, ';') AS hashtags
+            FROM (
+                SELECT DISTINCT changeset_id, hashtag
+                FROM changeset_hashtags
+                WHERE changeset_id IN (SELECT changeset_id FROM base)
+            ) AS t
+            GROUP BY t.changeset_id
+        )
+        SELECT
+            b.changeset_id AS id,
+            b.user,
+            b.uid,
+            b.created      AS created_at,
+            b.comment,
+            b.created_by,
+            b.imagery_used,
+            b.source,
+            b.min_lat, b.min_lon, b.max_lat, b.max_lon,
+            COALESCE(tags.hashtags, '') AS hashtags
+        FROM base b
+        LEFT JOIN tags USING (changeset_id)
+        ORDER BY created_at DESC
+        {('LIMIT ' + str(int(limit))) if limit is not None else ''}
+        """
+
+        df = con.execute(sql, params).df()
+        if to_csv:
+            df.to_csv(to_csv, index=False)
+        return df
+    finally:
+        con.close()
 
 def count_user_changes(
     *,
@@ -531,6 +823,18 @@ def count_user_changes(
         return con.execute(sql, params).df()
     finally:
         con.close()
+
+if __name__ == "__main__":
+
+    # #Choose the function that you want to use to access information from the database
+    # result_dataframe = get_hashtags_between_dates(start_date = "2025-01-01", end_date = "2025-08-10")
+
+    # #Enter your filepath here to save to a .csv file
+    # result_dataframe.to_csv('all_hashtags_between_01012025_and_10082025.csv', index=False) 
+
+    result_dataframe = get_all_users()
+
+    result_dataframe.to_csv('all_users.csv', index = False)
 
 def make_filename(prefix, start_date=None, end_date=None, bbox=None):
     """

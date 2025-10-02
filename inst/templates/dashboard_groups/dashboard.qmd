@@ -308,15 +308,14 @@ contributions_n_changesets <- nrow(changesets)
 ```
 
 ```{r}
-
-### 2) API back-fill, then compute contributions_type
+###Back-fill from precomputed file, then compute contributions_type
 #| label: api-backfill-profile-counts
 #| echo: false
 #| message: true
 #| warning: false
 
-# Uses OSMdashboard::get_contributions_osm_users() to fill diary/notes/traces/comments
-# when the DB overlay provides only zeros.
+# We back-fill diary/notes/traces/comments from data/raw/osm_user_details.csv
+# (written by data_retrieval.R)
 
 must_cols <- c("map_notes","diary","comments","traces")
 have_cols <- must_cols %in% names(contributions_summary)
@@ -331,43 +330,37 @@ if (!missing_any) {
   ))
 }
 
-need_api <- isTRUE(use_db) && (missing_any || all_zero)
+need_fill <- isTRUE(use_db) && (missing_any || all_zero)
 
-if (need_api) {
-  users_vec <- unique(contributions_summary$user)
-  users_vec <- users_vec[!is.na(users_vec) & nzchar(users_vec)]
-
-  cache_dir  <- file.path(data_root, "api_overlay")
-  cache_file <- file.path(cache_dir, "profile_counts.csv")
-
-  if (file.exists(cache_file)) {
-    api_counts <- readr::read_csv(cache_file, show_col_types = FALSE)
+if (need_fill) {
+  # read the precomputed user details
+  counts_path <- file.path(data_root, "raw", "osm_user_details.csv")
+  if (file.exists(counts_path)) {
+    api_counts <- readr::read_csv(counts_path, show_col_types = FALSE) |>
+      dplyr::mutate(user = tolower(user))
   } else {
-    api_counts <- OSMdashboard::get_contributions_osm_users(users_vec)
-    dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
-    readr::write_csv(api_counts, cache_file)
+    # keep rendering even if the file is missing
+    api_counts <- tibble::tibble(user = character())
   }
 
-  # Ensure required cols exist,  fill NAs with 0
-  for (col in must_cols) if (!col %in% names(api_counts)) api_counts[[col]] <- 0L
+  # ensure required cols exist & are numeric, then merge
+  for (col in must_cols) if (!col %in% names(api_counts)) api_counts[[col]] <- 0
   api_counts <- api_counts |>
     dplyr::mutate(dplyr::across(all_of(must_cols), ~as.numeric(replace(., is.na(.), 0)))) |>
     dplyr::select(user, all_of(must_cols))
 
-  # merge and do not touch map_changesets from DB
   contributions_summary <- contributions_summary |>
     dplyr::select(-dplyr::any_of(must_cols)) |>
     dplyr::left_join(api_counts, by = "user") |>
     dplyr::mutate(dplyr::across(all_of(must_cols), ~as.numeric(replace(., is.na(.), 0))))
 }
 
-#compute contributions_type
+# compute contributions_type
 contributions_type <- contributions_summary |>
   dplyr::select(-dplyr::starts_with("date"), -dplyr::any_of("account_age")) |>
   tidyr::pivot_longer(-user) |>
   dplyr::count(name, wt = value) |>
   dplyr::filter(name %in% c("comments","diary","map_changesets","map_notes","traces","wiki_edits"))
-
 ```
 
 # Overview

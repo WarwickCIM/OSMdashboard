@@ -57,6 +57,23 @@ This package uses quarto, which is is already installed with RStudio and Positro
 
 ## Usage
 
+First, edit group_info.csv and group_definition.csv. The conventions to be followed when editing group_definition.csv are as follows: 
+Group_tags: semicolon/pipe/comma separated exact hashtag tokens. Accepts either with # (matches hashtag_raw) or without # (matches normalized hashtag). Examples: educategirls; #letgirlsmap
+
+Group_liketags: patterns or plain words (we’ll treat plain words as %word%) separated by ;|,. Example: women% ; %girl%
+
+Group_comment: plain words to search inside changesets.comment (case-insensitive). ;|, separated. Example: mapathon; outreach
+
+Group_likecomment: raw LIKE patterns for comments (we’ll wrap plain words with % automatically). Example: %training%
+
+Group_bbx: min_lat,min_lon,max_lat,max_lon (e.g. -2.0,29.3,1.0,32.1). Leave blank for global.
+
+Group_startdate / Group_enddate: YYYY-MM-DD.
+
+TopActive: Any integer X. This will allow you to return the X most active users.
+
+If you do not want to define a group using one of these fields, just leave the field blank.
+
 ## Usage WITHOUT database
 
 1. Create the dashboard folder structure by calling `create_dashboard()`.
