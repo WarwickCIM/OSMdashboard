@@ -24,16 +24,43 @@ if (!"username" %in% names(group_users)) {
   stop("group_users.csv must have a 'username' column.")
 }
 
-# ---- CAP USERS TO 100 FOR NOW PLEASE CHANGE LATER -------------
-selected_users <- group_users$username |>
-  as.character() |>
-  trimws() |>
-  tolower()
+# --- if no users, exit nicely (and optionally write empty placeholders) ----
+selected_users <- unique(tolower(trimws(as.character(group_users$username))))
 selected_users <- selected_users[nzchar(selected_users)]
-selected_users <- unique(selected_users)
-selected_users <- head(selected_users, 100)   # <-- hard cap
 
-options(timeout = max(120, getOption("timeout")))
+if (length(selected_users) == 0) {
+  message("No users found for this group (from group_definition.csv). Nothing to fetch.")
+  # If you want to also create empty outputs so the dashboard can render:
+  dir.create(file.path(base_path,"data/raw"), recursive = TRUE, showWarnings = FALSE)
+  write.csv(data.frame(user=character(),
+                       map_changesets=integer(),
+                       map_notes=integer(),
+                       traces=integer(),
+                       diary=integer(),
+                       comments=integer(),
+                       date_creation=as.Date(character()),
+                       date_last_map_edit=as.Date(character())),
+            file.path(base_path,"data/raw/osm_user_details.csv"), row.names = FALSE)
+  write.csv(data.frame(id=integer(), user=character(), created=as.POSIXct(character()),
+                       min_lat=double(), min_lon=double(), max_lat=double(), max_lon=double()),
+            file.path(base_path,"data/raw/changesets.csv"), row.names = FALSE)
+  write.csv(data.frame(changeset=integer(), key=character(), value=character()),
+            file.path(base_path,"data/raw/changesets_tags.csv"), row.names = FALSE)
+  write.csv(data.frame(), file.path(base_path,"data/raw/changesets_details.csv"), row.names = FALSE)
+  write.csv(data.frame(user=character(), title=character(), timestamp=character()),
+            file.path(base_path,"data/raw/wiki_contributions.csv"), row.names = FALSE)
+  write.csv(data.frame(), file.path(base_path,"data/raw/contributions_diaries.csv"), row.names = FALSE)
+  write.csv(data.frame(user=character(), map_changesets=integer(), map_notes=integer(),
+                       traces=integer(), diary=integer(), comments=integer(),
+                       date_creation=as.Date(character()), date_last_map_edit=as.Date(character()),
+                       account_age=double(), map_activity_age=double(), wiki_edits=integer()),
+            file.path(base_path,"data/raw/contributions_summary.csv"), row.names = FALSE)
+  quit(save = "no", status = 0)
+}
+
+# ---- CAP USERS TO 100 FOR NOW -------------
+selected_users <- head(selected_users, 100)
+
 
 # ---------------------------------------
 # User profile stats polite to webpage and with caching
