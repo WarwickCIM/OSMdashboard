@@ -55,6 +55,7 @@ def build_overlay(
     out_dir: str = "data/db_overlay",
     usernames: Optional[Iterable[str]] = None,      # optional extras
     hashtags: Optional[Iterable[str]] = None,       # optional filter
+    like_hashtags: Optional[Iterable[str]] = None,  # optional filter
     start: Optional[str] = None,                    # optional filter
     end: Optional[str] = None,                      # optional filter
     bbox: Optional[Tuple[float, float, float, float]] = None,  # (min_lat,min_lon,max_lat,max_lon)
@@ -151,13 +152,27 @@ def build_overlay(
 
         # optional hashtag filter
         join_hashtags = ""
+        has_where_clauses = []
         if hashtags:
             tags = [h.strip() for h in _ensure_list(hashtags) if h.strip()]
             if tags:
                 join_hashtags = "JOIN changeset_hashtags h ON h.changeset_id = c.changeset_id"
                 placeholders_tags = ",".join(["?"] * len(tags))
-                where.append(f"AND h.hashtag IN ({placeholders_tags})")
+                has_where_clauses.append(f"h.hashtag IN ({placeholders_tags})")
                 params.extend(tags)
+        
+        if like_hashtags:
+            likes = [h.strip().lower() for h in _ensure_list(like_hashtags) if h.strip()]
+            if likes:
+                if not join_hashtags:
+                    join_hashtags = "JOIN changeset_hashtags h ON h.changeset_id = c.changeset_id"
+                # build OR (h.hashtag ILIKE ? OR ...)
+                like_sql = " OR ".join(["lower(h.hashtag) LIKE ?"] * len(likes))
+                has_where_clauses.append(f"({like_sql})")
+                params.extend([f"%{s}%" for s in likes])
+        
+        if has_where_clauses:
+            where.append("AND (" + " OR ".join(has_where_clauses) + ")")
 
         # fetch changesets for the group users
         sql = f"""
