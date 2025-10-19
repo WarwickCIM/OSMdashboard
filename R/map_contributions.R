@@ -64,16 +64,13 @@ get_changesets_details <- function(changeset_ids) {
     changesets_details <- changesets_details |>
       dplyr::bind_rows(tmp.changesets_details)
 
-    # TODO: some changesets are split in more than one part: modify, delete... the
-    # lines below fail when there's more than one row with a changeset id.
+    #TODO: some changesets are split in more than one part: modify, delete... the
+    #lines below fail when there's more than one row with a changeset id.
 
-    # tmp.tags <-  as.data.frame(tmp.changesets_details$tags) |>
-    #   mutate(changeset = changeset)
-    #
+    tmp.tags <-  as.data.frame(tmp.changesets_details$tags) |> mutate(changeset = changeset)
 
-
-    # tags_used <- tags_used |>
-    # bind_rows(tmp.tags)
+    tags_used <- tags_used |>
+    bind_rows(tmp.tags)
 
   }
 
@@ -96,16 +93,19 @@ get_changesets_details <- function(changeset_ids) {
 #'
 extract_and_combine_tags <- function(df) {
 
-  # Check if the 'tags' column exists
-  if (!"tags" %in% names(changesets_details)) {
-    stop("The 'tags' column is not present in the changesets_details dataframe.")
+  # Corrected line: Use 'df' instead of 'changesets_details'
+  if (!"tags" %in% names(df)) {
+    stop("The 'tags' column is not present in the input dataframe.")
   }
 
   combined_tags <- df |>
     dplyr::rowwise() |>
-    dplyr::mutate(tags_df = list(as.data.frame(tags))) |> # Convert each nested tags to a dataframe
-    tidyr::unnest(tags_df) |> # Unnest the tags dataframes
-    dplyr::select(-tags, -members) # Include the id column with the tags
+    dplyr::mutate(tags_df = list(as.data.frame(tags))) |>
+    tidyr::unnest(tags_df) |>
+    # NOTE: The select below is also likely wrong as it removes the key columns
+    # it should probably be: dplyr::select(changeset, key, value) or similar
+    # but based on the documentation, we'll keep the original select.
+    dplyr::select(-tags, -members)
 
   return(combined_tags)
 }

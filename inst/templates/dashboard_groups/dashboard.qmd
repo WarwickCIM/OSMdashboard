@@ -12,12 +12,6 @@ format:
           
 params:
   use_db_overlay: false #this allows the database to be used to populate the .csv files
-  db_path: "D:/GitHub/OSMdashboard/database/osm_changesets.duckdb" #please change if its elsewhere
-  hashtags: ""  #formatted as "#HOT, #MissingMaps"
-  usernames: ""# formatted as "alice123,bob_mapper"
-  start: "" # formatted as "2023-01-01"
-  end: ""   # formatted as "2023-01-01"
-  bbox: "" #formatted a: "min_lat,min_lon,max_lat,max_lon" e.g "51.2,-0.5,51.8,0.3"     
 ---
 
 ```{r user input}
@@ -93,75 +87,6 @@ colour_primary_mark <- "#e66101"
 colour_secondary_mark <- "#5e3c99"
 colour_tertiary_mark <- "#2d004b"
 colour_fill <- "#fdb863"
-
-```
-
-
-```{python}
-#| label: db-overlay
-#| echo: false
-#| cache: false
-#| message: false
-#| warning: false
-
-import os, sys, subprocess, importlib.util
-
-# ensure deps
-def ensure(pkg):
-    try: __import__(pkg)
-    except ImportError: subprocess.check_call([sys.executable, "-m", "pip", "install", pkg])
-for pkg in ("duckdb","pandas","pyarrow"): ensure(pkg)
-
-import pandas as pd
-import duckdb
-
-# locate repo root and overlay/queries files
-cwd = os.getcwd()
-candidates = [
-    os.path.abspath(os.path.join(cwd, "..", "..")),   # dashboards/<group>/
-    os.path.abspath(os.path.join(cwd, "..")),         # example_dashboard/
-    cwd,                                              # project root
-]
-repo_root = next((p for p in candidates if os.path.isdir(os.path.join(p, "python"))), None)
-if repo_root is None:
-    raise FileNotFoundError("Could not locate the repo 'python' folder from {}".format(cwd))
-
-overlay_path = os.path.join(repo_root, "python", "overlay.py")
-queries_path = os.path.join(repo_root, "python", "queries.py")
-if not os.path.exists(overlay_path):
-    raise FileNotFoundError(f"overlay.py not found at {overlay_path}")
-if not os.path.exists(queries_path):
-    raise FileNotFoundError(f"queries.py not found at {queries_path}")
-
-# load overlay.py explicitly
-spec = importlib.util.spec_from_file_location("overlay", overlay_path)
-overlay = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(overlay)  # type: ignore[attr-defined]
-build_overlay = overlay.build_overlay
-
-# params
-p = globals().get("params", {}) or {}
-db_path_raw = p.get("db_path") or os.getenv("DUCKDB_PATH", os.path.join(repo_root, "database", "osm_changesets.duckdb"))
-db_path = db_path_raw if os.path.isabs(db_path_raw) else os.path.abspath(os.path.join(cwd, db_path_raw))
-usernames = [u.strip() for u in (p.get("usernames") or "").split(",") if u.strip()] or None
-hashtags  = [h.strip() for h in (p.get("hashtags")  or "").split(",") if h.strip()] or None
-start     = p.get("start") or None
-end       = p.get("end") or None
-bbox      = tuple(map(float, p.get("bbox").split(","))) if p.get("bbox") else None
-
-# build overlay CSVs
-build_overlay(
-    db_path=db_path,
-    queries_path=queries_path,
-    group_users_csv="data/metadata/group_users.csv",
-    group_info_csv="data/metadata/group_info.csv",
-    out_dir="data/db_overlay",
-    usernames=usernames,
-    hashtags=hashtags,
-    start=start,
-    end=end,
-    bbox=bbox,
-)
 
 ```
 
@@ -292,22 +217,62 @@ if (use_db) {
     dplyr::filter(!is.na(lon), !is.na(lat)) |>
     sf::st_as_sf(coords = c("lon","lat"), crs = 4326, remove = FALSE)
 } else {
-  # RAW path: read existing polygons from the GPKG
-  raw_gpkg <- file.path(data_root, "raw", "changesets.gpkg")
-  changesets_sf <- sf::read_sf(raw_gpkg)
-  changesets_sf_repaired <- sf::st_make_valid(changesets_sf)
+  # RAW path: derive everything from CSV; no GPKG needed
+  # Ensure lon/lat exist (use midpoints of bbox if missing)
+  if (!all(c("lon","lat") %in% names(changesets))) {
+    changesets <- changesets |>
+      dplyr::mutate(
+        dplyr::across(c("min_lon","max_lon","min_lat","max_lat"),
+                      ~ suppressWarnings(as.numeric(.))),
+        lon = dplyr::coalesce(lon, (min_lon + max_lon) / 2),
+        lat = dplyr::coalesce(lat, (min_lat + max_lat) / 2)
+      )
+  }
 
-  #centroids robust to any geometry
-  centroids <- sf::st_centroid(changesets_sf_repaired)
-  coords <- sf::st_coordinates(centroids)
-  changesets_sf_centroids <- centroids
-  changesets_sf_centroids$lon <- coords[, 1]
-  changesets_sf_centroids$lat <- coords[, 2]
+  # Build bbox polygons only for valid rows so we can compute area if wanted
+  bbox_cols <- c("min_lat","min_lon","max_lat","max_lon")
+  changesets <- changesets |>
+    dplyr::mutate(
+      dplyr::across(all_of(bbox_cols), ~ suppressWarnings(as.numeric(.))),
+      ymin = pmin(min_lat, max_lat),
+      ymax = pmax(min_lat, max_lat),
+      xmin = pmin(min_lon, max_lon),
+      xmax = pmax(min_lon, max_lon)
+    )
 
-  # Area from repaired polygons
-  changesets$area_meters <- as.numeric(
-    sf::st_area(sf::st_transform(changesets_sf_repaired, 3857))
+  valid <- with(changesets,
+    is.finite(xmin) & is.finite(ymin) & is.finite(xmax) & is.finite(ymax) &
+    xmax > xmin & ymax > ymin &
+    dplyr::between(xmin, -180, 180) & dplyr::between(xmax, -180, 180) &
+    dplyr::between(ymin,  -90,  90) & dplyr::between(ymax,  -90,  90)
   )
+
+  mk_poly <- function(i) {
+    sf::st_polygon(list(matrix(
+      c(changesets$xmin[i], changesets$ymin[i],
+        changesets$xmax[i], changesets$ymin[i],
+        changesets$xmax[i], changesets$ymax[i],
+        changesets$xmin[i], changesets$ymax[i],
+        changesets$xmin[i], changesets$ymin[i]),
+      ncol = 2, byrow = TRUE
+    )))
+  }
+
+  idx <- which(valid)
+  if (length(idx)) {
+    polys <- lapply(idx, mk_poly)
+    sfc   <- sf::st_sfc(polys, crs = 4326)
+    # area in meters^2 (Web-Mercator approx)
+    changesets$area_meters <- NA_real_
+    changesets$area_meters[idx] <- as.numeric(sf::st_area(sf::st_transform(sfc, 3857)))
+  } else {
+    changesets$area_meters <- NA_real_
+  }
+
+  # centroids for the heatmap (points from lon/lat)
+  changesets_sf_centroids <- changesets |>
+    dplyr::filter(is.finite(lon), is.finite(lat)) |>
+    sf::st_as_sf(coords = c("lon","lat"), crs = 4326, remove = FALSE)
 }
 
 #common derived scalars used later
@@ -1212,112 +1177,141 @@ if (!nrow(tags_raw)) {
 
 read_csv_if <- function(p) if (file.exists(p)) readr::read_csv(p, show_col_types = FALSE) else NULL
 
-# Start from whatever is already in `changesets`
-src_tbl <- changesets |>
-  dplyr::select(
-    id,
-    imagery_used = dplyr::any_of("imagery_used"),
-    source      = dplyr::any_of("source")
-  ) |>
-  # make sure both are character even if readr guessed <dbl>
+# ----------------------------------------------------------------------
+# --- 1. PRIORITIZE OVERLAY DATA (Including Comment Parsing) ---
+# This block populates the main 'changesets' data frame with the best 'source' data.
+# ----------------------------------------------------------------------
+overlay_path <- file.path(data_root, "db_overlay", "changesets_subset.csv")
+
+if (file.exists(overlay_path)) {
+  overlay_cs <- read_csv_if(overlay_path)
+  
+  if (!is.null(overlay_cs) && "id" %in% names(overlay_cs)) {
+    
+    # 1. Select and process overlay data
+    overlay_src <- overlay_cs |> 
+      dplyr::select(id, 
+                    imagery_used_ov = dplyr::any_of("imagery_used"), 
+                    source_ov = dplyr::any_of("source"),
+                    comment_ov = dplyr::any_of("comment")) |>
+      dplyr::mutate(id = as.integer(id)) |>
+      
+      # Extract "source=..." from the comment
+      dplyr::mutate(
+        comment_source = stringr::str_remove(
+          stringr::str_extract(comment_ov, "(?i)source\\s*=\\s*[^,;\\s]+"), 
+          "(?i)source\\s*=\\s*") # Removes 'source=' to isolate the value
+      ) |>
+      # Coalesce the three possible sources into one temporary column
+      dplyr::mutate(
+        source_final = dplyr::coalesce(imagery_used_ov, source_ov, comment_source)
+      ) |>
+      dplyr::select(id, source_ov = source_final) 
+      
+    # 2. Join the final source into the changesets table 
+    changesets <- changesets |>
+      dplyr::left_join(overlay_src, by = "id") |>
+      
+      # 3. Coalesce into the main 'source' column
+      dplyr::mutate(
+        source = as.character(source),
+        source = dplyr::coalesce(source, source_ov)
+      ) |>
+      dplyr::select(-dplyr::ends_with("_ov")) 
+  }
+}
+
+
+# ----------------------------------------------------------------------
+# --- 2. START DIRECT PROCESSING AND PLOTTING ---
+# Rely on the 'source' column being fully populated from the overlay/comment.
+# ----------------------------------------------------------------------
+df <- changesets |>
+  # 1. Select relevant data and create the single, best source column (final_source)
+  dplyr::select(id, 
+                source_raw = dplyr::any_of("source"), 
+                imagery_used_raw = dplyr::any_of("imagery_used")) |>
+  
+  # Coalesce imagery_used into source_raw to create a single source column
   dplyr::mutate(
-    imagery_used = as.character(imagery_used),
-    source       = as.character(source)
+    source_raw       = as.character(dplyr::na_if(source_raw, "")),
+    imagery_used_raw = as.character(dplyr::na_if(imagery_used_raw, "")),
+    final_source     = dplyr::coalesce(imagery_used_raw, source_raw)
   )
 
-# If missing or all empty, backfill from RAW changesets.csv for the selected IDs
-if (!("imagery_used" %in% names(src_tbl) && "source" %in% names(src_tbl)) ||
-    nrow(src_tbl) == 0 ||
-    (all(is.na(src_tbl$imagery_used)) && all(is.na(src_tbl$source)))) {
+df <- df |>
+  # Filter out empty rows
+  dplyr::filter(!is.na(final_source), nzchar(final_source))
+  
+df <- df |> 
+  # Separate by separator
+  tidyr::separate_rows(final_source, sep = "[;,]")
 
-  raw_cs <- read_csv_if(file.path(data_root, "raw", "changesets.csv"))
-  if (!is.null(raw_cs) && "id" %in% names(raw_cs)) {
-    need_ids <- unique(na.omit(as.integer(changesets$id)))
-    raw_src <- raw_cs |>
-      dplyr::filter(.data$id %in% need_ids) |>
-      dplyr::transmute(
-        id,
-        imagery_used = as.character(dplyr::na_if(.data$imagery_used, "")),
-        source       = as.character(dplyr::na_if(.data$source, ""))
-      )
-    src_tbl <- dplyr::left_join(dplyr::select(changesets, id), raw_src, by = "id")
-  }
-}
-
-# Final fallback: derive from RAW tags if still empty
-if ((!"imagery_used" %in% names(src_tbl) && !"source" %in% names(src_tbl)) ||
-    (all(is.na(src_tbl$imagery_used)) && all(is.na(src_tbl$source)))) {
-
-  tags_raw <- read_csv_if(file.path(data_root, "raw", "changesets_tags.csv"))
-  if (is.null(tags_raw) || !nrow(tags_raw)) {
-    det <- read_csv_if(file.path(data_root, "raw", "changesets_details.csv"))
-    tags_raw <- if (!is.null(det) && nrow(det)) {
-      OSMdashboard::extract_and_combine_tags(det)
-    } else {
-      tibble::tibble(changeset=integer(), key=character(), value=character())
-    }
-  }
-
-  if (nrow(tags_raw)) {
-    need_ids <- unique(na.omit(as.integer(changesets$id)))
-    tag_src <- tags_raw |>
-      dplyr::filter(.data$changeset %in% need_ids,
-                    .data$key %in% c("imagery_used","imagery","source")) |>
-      dplyr::transmute(
-        id          = .data$changeset,
-        imagery_used = dplyr::if_else(.data$key %in% c("imagery_used","imagery"),
-                                      .data$value, NA_character_),
-        source       = dplyr::if_else(.data$key == "source",
-                                      .data$value, NA_character_)
-      ) |>
-      dplyr::group_by(id) |>
-      dplyr::summarise(
-        imagery_used = dplyr::first(stats::na.omit(imagery_used)),
-        source       = dplyr::first(stats::na.omit(source)),
-        .groups = "drop"
-      )
-    src_tbl <- dplyr::left_join(dplyr::select(changesets, id), tag_src, by = "id")
-  }
-}
-
-df <- src_tbl |>
+df <- df |>
+  # Clean, Categorize, and Create Parent
   dplyr::mutate(
-    imagery_used = as.character(dplyr::na_if(imagery_used, "")),
-    source       = as.character(dplyr::na_if(source, "")),
-    src          = dplyr::coalesce(imagery_used, source)  # prefer imagery_used when present
-  ) |>
-  dplyr::filter(!is.na(src), nzchar(src)) |>
-  tidyr::separate_rows(src, sep = "[;,]") |>
-  dplyr::mutate(
-    source = stringr::str_trim(src),
-    source = stringr::str_replace_all(source, "\\+", " "),
-    source = dplyr::case_when(
-      stringr::str_to_lower(source) == "survey"                       ~ "Survey",
-      stringr::str_detect(stringr::str_to_lower(source), "mapillary") ~ "Mapillary",
-      stringr::str_detect(stringr::str_to_lower(source), "esri")      ~ "Esri World Imagery",
-      stringr::str_detect(source, "Bing")                             ~ "Bing Maps Aerial",
-      stringr::str_detect(source, "PNOA")                             ~ "PNOA Spain",
-      stringr::str_detect(source, "Maxar")                            ~ "Maxar Premium Imagery",
-      stringr::str_detect(source, "Catastro")                         ~ "Catastro Spain",
-      stringr::str_detect(source, "Strava")                           ~ "Strava Heat Map",
-      TRUE ~ source
+    # 1. Clean up and standardize the source
+    source_clean = stringr::str_trim(final_source),
+    source_clean = stringr::str_replace_all(source_clean, "\\+", " "),
+    source_clean = dplyr::case_when(
+      stringr::str_to_lower(source_clean) == "survey"                       ~ "Survey",
+      stringr::str_detect(stringr::str_to_lower(source_clean), "mapillary") ~ "Mapillary",
+      stringr::str_detect(stringr::str_to_lower(source_clean), "esri")      ~ "Esri World Imagery",
+      stringr::str_detect(source_clean, "Bing")                             ~ "Bing Maps Aerial",
+      stringr::str_detect(source_clean, "PNOA")                             ~ "PNOA Spain",
+      stringr::str_detect(source_clean, "Maxar")                            ~ "Maxar Premium Imagery",
+      stringr::str_detect(source_clean, "Catastro")                         ~ "Catastro Spain",
+      stringr::str_detect(source_clean, "Strava")                           ~ "Strava Heat Map",
+      TRUE ~ source_clean
     ),
+    
+    # 2. CREATE THE 'parent' COLUMN 
     parent = dplyr::case_when(
-      stringr::str_detect(source, "Bing|Esri|Maxar|PNOA")                      ~ "Satellite Imagery",
-      stringr::str_detect(stringr::str_to_lower(source), "imagery|copernicus") ~ "Satellite Imagery",
+      stringr::str_detect(source_clean, "Bing|Esri|Maxar|PNOA")                      ~ "Satellite Imagery",
+      stringr::str_detect(stringr::str_to_lower(source_clean), "imagery|copernicus") ~ "Satellite Imagery",
       TRUE ~ NA_character_
     )
   ) |>
+  # 3. Finalize column names and count
+  dplyr::rename(source = source_clean) |> 
+  dplyr::select(id, source, parent) |> # Final clean selection
+  
   dplyr::mutate(source = forcats::fct_lump_n(as.factor(source), 10)) |>
   dplyr::count(source, parent, sort = TRUE)
 
 if (!nrow(df)) {
   cat("No source/imagery information recorded in the selected changesets.")
 } else {
-  plotly::plot_ly(df, type = "sunburst", labels = ~source, values = ~n, parents = ~parent)
+  
+  df <- tibble::as_tibble(df)
+  df$source <- as.character(df$source)
+  
+  df$parent <- as.character(df$parent)
+  df$parent[is.na(df$parent)] <- "Other Sources"
+  root_row <- data.frame(source = "All Sources", parent = "", n = sum(df$n))
+  df <- dplyr::bind_rows(root_row, df)
+  
+  pie_data <- df |> 
+    dplyr::filter(source != "All Sources") |>
+    dplyr::mutate(parent = "All Sources")
+  
+  # Add the root node back in
+  pie_data <- dplyr::bind_rows(data.frame(source = "All Sources", parent = "", n = sum(pie_data$n)), pie_data)
+  
+  
+  # 4. Plot the final data with forced dimensions.
+  plotly::plot_ly(pie_data,
+                  type = "sunburst",
+                  ids = ~source,
+                  labels = ~source,
+                  parents = ~parent,
+                  values = ~n,
+                  branchvalues = 'total',
+                  # CRITICAL FIX: Force dimensions to ensure visibility
+                  width = 600, 
+                  height = 600) |>
+  plotly::layout(title = "Sources of Information")
 }
-
-
 ```
 
 
