@@ -12,12 +12,6 @@ format:
           
 params:
   use_db_overlay: false #this allows the database to be used to populate the .csv files
-  db_path: "D:/GitHub/OSMdashboard/database/osm_changesets.duckdb" #please change if its elsewhere
-  hashtags: ""  #formatted as "#HOT, #MissingMaps"
-  usernames: ""# formatted as "alice123,bob_mapper"
-  start: "" # formatted as "2023-01-01"
-  end: ""   # formatted as "2023-01-01"
-  bbox: "" #formatted a: "min_lat,min_lon,max_lat,max_lon" e.g "51.2,-0.5,51.8,0.3"     
 ---
 
 ```{r user input}
@@ -94,64 +88,6 @@ colour_secondary_mark <- "#5e3c99"
 colour_tertiary_mark <- "#2d004b"
 colour_fill <- "#fdb863"
 
-```
-
-
-```{python}
-#| label: db-overlay
-#| echo: false
-#| cache: false
-#| message: false 
-#| warning: false
-
-import os, sys, subprocess
-
-# make sure Python can see the python folder in the main directory
-sys.path.insert(0, os.path.join(os.getcwd(), "../python"))
-
-#ensure all python libraries are installed
-def ensure(pkg):
-    try: __import__(pkg)
-    except ImportError: subprocess.check_call([sys.executable, "-m", "pip", "install", pkg])
-
-for p in ("duckdb","pandas","pyarrow"): ensure(p)
-
-#import python libraries
-import pandas as pd
-import duckdb
-
-#import helper module after installing the python libraries
-import overlay
-
-#import helper function from module
-from overlay import build_overlay
-
-p = params if 'params' in globals() else {}
-
-db_path_raw = p.get("db_path") or os.getenv("DUCKDB_PATH", "../database/osm_changesets.duckdb")
-
-db_path = db_path_raw if os.path.isabs(db_path_raw) else os.path.abspath(os.path.join(os.getcwd(), db_path_raw))
-
-# read params with sane fallbacks
-usernames = [u.strip() for u in (p.get("usernames") or "").split(",") if u.strip()] or None
-hashtags  = [h.strip() for h in (p.get("hashtags")  or "").split(",") if h.strip()] or None
-start     = p.get("start") or None
-end       = p.get("end") or None
-bbox      = tuple(map(float, p.get("bbox").split(","))) if p.get("bbox") else None
-
-#build the overlay with information from the database
-build_overlay(
-    db_path=db_path,
-    queries_path="../python/queries.py",
-    group_users_csv="data/metadata/group_users.csv",
-    group_info_csv="data/metadata/group_info.csv",
-    out_dir="data/db_overlay",
-    usernames=usernames,
-    hashtags=hashtags,
-    start=start,
-    end=end,
-    bbox=bbox,
-)
 ```
 
 
@@ -281,22 +217,62 @@ if (use_db) {
     dplyr::filter(!is.na(lon), !is.na(lat)) |>
     sf::st_as_sf(coords = c("lon","lat"), crs = 4326, remove = FALSE)
 } else {
-  # RAW path: read existing polygons from the GPKG
-  raw_gpkg <- file.path(data_root, "raw", "changesets.gpkg")
-  changesets_sf <- sf::read_sf(raw_gpkg)
-  changesets_sf_repaired <- sf::st_make_valid(changesets_sf)
+  # RAW path: derive everything from CSV; no GPKG needed
+  # Ensure lon/lat exist (use midpoints of bbox if missing)
+  if (!all(c("lon","lat") %in% names(changesets))) {
+    changesets <- changesets |>
+      dplyr::mutate(
+        dplyr::across(c("min_lon","max_lon","min_lat","max_lat"),
+                      ~ suppressWarnings(as.numeric(.))),
+        lon = dplyr::coalesce(lon, (min_lon + max_lon) / 2),
+        lat = dplyr::coalesce(lat, (min_lat + max_lat) / 2)
+      )
+  }
 
-  #centroids robust to any geometry
-  centroids <- sf::st_centroid(changesets_sf_repaired)
-  coords <- sf::st_coordinates(centroids)
-  changesets_sf_centroids <- centroids
-  changesets_sf_centroids$lon <- coords[, 1]
-  changesets_sf_centroids$lat <- coords[, 2]
+  # Build bbox polygons only for valid rows so we can compute area if wanted
+  bbox_cols <- c("min_lat","min_lon","max_lat","max_lon")
+  changesets <- changesets |>
+    dplyr::mutate(
+      dplyr::across(all_of(bbox_cols), ~ suppressWarnings(as.numeric(.))),
+      ymin = pmin(min_lat, max_lat),
+      ymax = pmax(min_lat, max_lat),
+      xmin = pmin(min_lon, max_lon),
+      xmax = pmax(min_lon, max_lon)
+    )
 
-  # Area from repaired polygons
-  changesets$area_meters <- as.numeric(
-    sf::st_area(sf::st_transform(changesets_sf_repaired, 3857))
+  valid <- with(changesets,
+    is.finite(xmin) & is.finite(ymin) & is.finite(xmax) & is.finite(ymax) &
+    xmax > xmin & ymax > ymin &
+    dplyr::between(xmin, -180, 180) & dplyr::between(xmax, -180, 180) &
+    dplyr::between(ymin,  -90,  90) & dplyr::between(ymax,  -90,  90)
   )
+
+  mk_poly <- function(i) {
+    sf::st_polygon(list(matrix(
+      c(changesets$xmin[i], changesets$ymin[i],
+        changesets$xmax[i], changesets$ymin[i],
+        changesets$xmax[i], changesets$ymax[i],
+        changesets$xmin[i], changesets$ymax[i],
+        changesets$xmin[i], changesets$ymin[i]),
+      ncol = 2, byrow = TRUE
+    )))
+  }
+
+  idx <- which(valid)
+  if (length(idx)) {
+    polys <- lapply(idx, mk_poly)
+    sfc   <- sf::st_sfc(polys, crs = 4326)
+    # area in meters^2 (Web-Mercator approx)
+    changesets$area_meters <- NA_real_
+    changesets$area_meters[idx] <- as.numeric(sf::st_area(sf::st_transform(sfc, 3857)))
+  } else {
+    changesets$area_meters <- NA_real_
+  }
+
+  # centroids for the heatmap (points from lon/lat)
+  changesets_sf_centroids <- changesets |>
+    dplyr::filter(is.finite(lon), is.finite(lat)) |>
+    sf::st_as_sf(coords = c("lon","lat"), crs = 4326, remove = FALSE)
 }
 
 #common derived scalars used later
@@ -305,18 +281,78 @@ date_start <- as.Date(min(changesets$created_at, na.rm = TRUE))
 date_end   <- as.Date(max(changesets$created_at, na.rm = TRUE))
 n_days <- as.numeric(difftime(date_end, date_start, units = "days"))
 contributions_n_changesets <- nrow(changesets)
+
+# Back-fill 'locale' from raw when overlay is used
+if (use_db && !"locale" %in% names(changesets)) {
+  raw_cs <- read_csv_if(file.path(data_root, "raw", "changesets.csv"))
+  if (!is.null(raw_cs) && "locale" %in% names(raw_cs)) {
+    changesets <- changesets |>
+      dplyr::left_join(raw_cs |>
+                         dplyr::select(id, locale),
+                       by = "id")
+  }
+}
+
 ```
 
 ```{r}
+#| label: ensure-changesets-tags
+#| echo: false
+#| message: false
+#| warning: false
 
-### 2) API back-fill, then compute contributions_type
+# We'll make sure `changesets_tags` exists even in overlay mode.
+# Priority:
+#  1) if overlay already wrote db_overlay/changesets_tags_subset.csv, use it
+#  2) else, derive from RAW changesets_details.csv but only for selected changesets
+
+read_csv_if <- function(p) if (file.exists(p)) readr::read_csv(p, show_col_types = FALSE) else NULL
+
+if (!exists("changesets_tags") || is.null(changesets_tags) || !nrow(changesets_tags)) {
+  # 1) overlay cache
+  p_db <- file.path(data_root, "db_overlay", "changesets_tags_subset.csv")
+  ct   <- read_csv_if(p_db)
+
+  if (is.null(ct) || !nrow(ct)) {
+    # 2) derive from RAW details filtered to the overlay changesets
+    p_raw_details <- file.path(data_root, "raw", "changesets_details.csv")
+    det <- read_csv_if(p_raw_details)
+
+    if (!is.null(det) && nrow(det) && "changeset" %in% names(det)) {
+      need_ids <- unique(na.omit(as.integer(changesets$id)))
+      det_sel  <- det |> dplyr::filter(changeset %in% need_ids)
+
+      # Use the package helper to explode to (changeset, key, value)
+      ct <- tryCatch(
+        OSMdashboard::extract_and_combine_tags(det_sel),
+        error = function(e) tibble::tibble()
+      )
+
+      # Optionally cache for next render
+      if (nrow(ct)) {
+        out_db <- file.path(data_root, "db_overlay", "changesets_tags_subset.csv")
+        dir.create(dirname(out_db), recursive = TRUE, showWarnings = FALSE)
+        readr::write_csv(ct, out_db)
+      }
+    } else {
+      ct <- tibble::tibble()
+    }
+  }
+
+  changesets_tags <- ct
+}
+
+```
+
+```{r}
+###Back-fill from precomputed file, then compute contributions_type
 #| label: api-backfill-profile-counts
 #| echo: false
 #| message: true
 #| warning: false
 
-# Uses OSMdashboard::get_contributions_osm_users() to fill diary/notes/traces/comments
-# when the DB overlay provides only zeros.
+# We back-fill diary/notes/traces/comments from data/raw/osm_user_details.csv
+# (written by data_retrieval.R)
 
 must_cols <- c("map_notes","diary","comments","traces")
 have_cols <- must_cols %in% names(contributions_summary)
@@ -331,43 +367,62 @@ if (!missing_any) {
   ))
 }
 
-need_api <- isTRUE(use_db) && (missing_any || all_zero)
+need_fill <- isTRUE(use_db) && (missing_any || all_zero)
 
-if (need_api) {
-  users_vec <- unique(contributions_summary$user)
-  users_vec <- users_vec[!is.na(users_vec) & nzchar(users_vec)]
-
-  cache_dir  <- file.path(data_root, "api_overlay")
-  cache_file <- file.path(cache_dir, "profile_counts.csv")
-
-  if (file.exists(cache_file)) {
-    api_counts <- readr::read_csv(cache_file, show_col_types = FALSE)
+if (need_fill) {
+  # read the precomputed user details
+  counts_path <- file.path(data_root, "raw", "osm_user_details.csv")
+  if (file.exists(counts_path)) {
+    api_counts <- readr::read_csv(counts_path, show_col_types = FALSE) |>
+      dplyr::mutate(user = tolower(user))
   } else {
-    api_counts <- OSMdashboard::get_contributions_osm_users(users_vec)
-    dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
-    readr::write_csv(api_counts, cache_file)
+    # keep rendering even if the file is missing
+    api_counts <- tibble::tibble(user = character())
   }
 
-  # Ensure required cols exist,  fill NAs with 0
-  for (col in must_cols) if (!col %in% names(api_counts)) api_counts[[col]] <- 0L
+  # ensure required cols exist & are numeric, then merge
+  for (col in must_cols) if (!col %in% names(api_counts)) api_counts[[col]] <- 0
   api_counts <- api_counts |>
     dplyr::mutate(dplyr::across(all_of(must_cols), ~as.numeric(replace(., is.na(.), 0)))) |>
     dplyr::select(user, all_of(must_cols))
 
-  # merge and do not touch map_changesets from DB
   contributions_summary <- contributions_summary |>
     dplyr::select(-dplyr::any_of(must_cols)) |>
     dplyr::left_join(api_counts, by = "user") |>
     dplyr::mutate(dplyr::across(all_of(must_cols), ~as.numeric(replace(., is.na(.), 0))))
 }
 
-#compute contributions_type
+# Back-fill account_age and wiki_edits from RAW contributions_summary when overlay is used
+if (use_db) {
+  raw_cons <- read_csv_if(file.path(data_root, "raw", "contributions_summary.csv"))
+  if (!is.null(raw_cons)) {
+    raw_cons <- raw_cons |>
+      dplyr::mutate(
+        user       = tolower(user),
+        account_age = as.numeric(account_age),
+        wiki_edits  = as.integer(wiki_edits)
+      ) |>
+      dplyr::select(user, account_age, wiki_edits)
+
+    contributions_summary <- contributions_summary |>
+      dplyr::mutate(user = tolower(user)) |>
+      dplyr::left_join(raw_cons, by = "user", suffix = c("", "_raw")) |>
+      dplyr::mutate(
+        account_age = dplyr::coalesce(account_age_raw, account_age),
+        wiki_edits  = dplyr::coalesce(wiki_edits_raw,  wiki_edits)
+      ) |>
+      dplyr::select(-dplyr::ends_with("_raw"))
+  }
+}
+
+# compute contributions_type
 contributions_type <- contributions_summary |>
   dplyr::select(-dplyr::starts_with("date"), -dplyr::any_of("account_age")) |>
   tidyr::pivot_longer(-user) |>
+  dplyr::mutate(value = suppressWarnings(as.numeric(value)),
+                value = tidyr::replace_na(value, 0)) |>
   dplyr::count(name, wt = value) |>
   dplyr::filter(name %in% c("comments","diary","map_changesets","map_notes","traces","wiki_edits"))
-
 ```
 
 # Overview
@@ -627,34 +682,30 @@ ggplotly(hist_traces)
 ```{r}
 #| title: "Facets"
 
-contributions_summary |> 
-  select(user, account_age, map_changesets, wiki_edits, comments, diary, map_notes, traces) |> 
-  pivot_longer(-user) |> 
-  mutate(name = as.factor(name),
-         name = fct_relevel(name, "account_age", "map_changesets", "wiki_edits", "comments", "diary", "map_notes", "traces")) |> 
-  ggplot(aes(x = value, fill = name)) +
-  geom_histogram(
-    # breaks = seq(0, max(contributions_summary), by = 2),
-    # color = colour_primary_mark,
-    # fill = colour_fill
-  ) +
-  geom_vline(
-    xintercept = mean(~value), 
-    # color = colour_secondary_mark, 
-    linetype = 2, 
-    lwd = 0.7
-  ) + 
-  facet_wrap(~name, ncol = 2, scales = "free_x")+ 
-  labs(y = "", x ="") +
-  # theme_minimal() +
-  theme(
-    axis.title.y=element_blank(),
-    axis.ticks.y = element_blank(),
-    axis.text.y = element_blank(),
-    panel.grid= element_blank(),
-    legend.position = "none"
+facets_long <- contributions_summary |>
+  dplyr::select(user, account_age, map_changesets, wiki_edits, comments, diary, map_notes, traces) |>
+  tidyr::pivot_longer(-user) |>
+  dplyr::mutate(
+    name  = forcats::fct_relevel(name, "account_age","map_changesets","wiki_edits","comments","diary","map_notes","traces"),
+    value = suppressWarnings(as.numeric(value))
   )
 
+means <- facets_long |>
+  dplyr::group_by(name) |>
+  dplyr::summarise(m = mean(value, na.rm = TRUE), .groups = "drop")
+
+ggplot(facets_long, aes(x = value, fill = name)) +
+  geom_histogram() +
+  geom_vline(data = means, aes(xintercept = m), linetype = 2, linewidth = 0.7) +
+  facet_wrap(~name, ncol = 2, scales = "free_x") +
+  labs(y = "", x = "") +
+  theme(
+    axis.title.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.y  = element_blank(),
+    panel.grid   = element_blank(),
+    legend.position = "none"
+  )
 
 ```
 
@@ -797,7 +848,7 @@ changeset_heatmap_interactive
 ```{r}
 #| title: "Changesets and size"
 
-changesets_details <- read_csv(paste0(base_path, "data/raw/changesets_details.csv"))
+changesets_details <- readr::read_csv(file.path(data_root, "raw", "changesets_details.csv"))
 
 hist_changesets_size <- changesets_details |> 
   count(changeset, name = "n_features") |>
@@ -832,40 +883,66 @@ ggplotly(hist_changesets_size)
 ```{r}
 #| title: "Most Used keys"
 
-if (use_db) {
-  cat('::: {.callout-warning}\n**Feature keys panel** — available only when `use_db_overlay: false` (API/planet path).\n:::\n')
-} else {
-  #Non-db-overlay option
+# Always start from RAW tags
+raw_tags_path <- file.path(data_root, "raw", "changesets_tags.csv")
+raw_det_path  <- file.path(data_root, "raw", "changesets_details.csv")
 
-  key_counts <- changesets_tags  |>
-    count(key, sort = TRUE) |> 
-    categorise_keys() |> 
-    mutate(parent_key = replace_na(parent_key, "other"),
-           top_key = replace_na(top_key, "other"))
-  
-  top_keys <- levels(as.factor(key_counts$top_key))
+read_csv_if <- function(p) if (file.exists(p)) readr::read_csv(p, show_col_types = FALSE) else NULL
+
+tags_raw <- read_csv_if(raw_tags_path)
+
+# If we don't have a tags CSV, derive from RAW details as a fallback
+if (is.null(tags_raw) || !nrow(tags_raw)) {
+  det <- read_csv_if(raw_det_path)
+  if (!is.null(det) && nrow(det)) {
+    tags_raw <- OSMdashboard::extract_and_combine_tags(det)
+  } else {
+    tags_raw <- tibble::tibble(changeset=integer(), key=character(), value=character())
+  }
+}
+
+# If we're using the overlay, restrict RAW tags to the overlay-selected changesets
+if (exists("changesets") && "id" %in% names(changesets)) {
+  sel_ids <- unique(na.omit(as.integer(changesets$id)))
+  tags_raw <- dplyr::filter(tags_raw, .data$changeset %in% sel_ids)
+}
+
+if (!nrow(tags_raw)) {
+  cat("No feature tags available for the selected changesets.")
+} else {
+  key_counts <- tags_raw |>
+    dplyr::filter(!is.na(key), nzchar(key)) |>
+    dplyr::count(key, sort = TRUE) |>
+    categorise_keys() |>
+    dplyr::mutate(
+      parent_key = tidyr::replace_na(parent_key, "other"),
+      top_key    = tidyr::replace_na(top_key, "other"),
+      label_parent = dplyr::if_else(parent_key == "other", "", parent_key)
+    )
+
+  # ensure all parents appear as top-level nodes in the treemap
+  top_keys   <- levels(as.factor(key_counts$top_key))
   top_keys_n <- nlevels(as.factor(key_counts$top_key))
-  
-  
   tags_top_parents <- data.frame(
-    key = top_keys,
-    n = rep(0, top_keys_n),
-    top_key = rep("", top_keys_n) 
+    key    = top_keys,
+    n      = rep(0L, top_keys_n),
+    top_key= rep("", top_keys_n)   # top-level nodes have empty parent
   )
-  
-  key_counts <- key_counts |> 
-    bind_rows(tags_top_parents) |> 
-    filter(key != "leisure")
-  
-  plot_ly(
-    data = key_counts,
-    type = "treemap",
-    labels = ~key,
-    values = ~n,
+
+  key_counts <- key_counts |>
+    dplyr::bind_rows(tags_top_parents) |>
+    dplyr::filter(key != "leisure")
+
+  plotly::plot_ly(
+    data    = key_counts,
+    type    = "treemap",
+    labels  = ~key,
+    values  = ~n,
     parents = ~top_key,
     hoverinfo = "label+value+percent parent+percent entry+percent root"
   )
 }
+
 
 ```
 
@@ -1043,36 +1120,50 @@ if ("comment" %in% names(changesets)) {
 ```{r}
 #| title: "Most Used keys 2"
 
+read_csv_if <- function(p) if (file.exists(p)) readr::read_csv(p, show_col_types = FALSE) else NULL
 
-if (use_db) {
-  cat('::: {.callout-warning}\n**Feature keys panel** — available only when `use_db_overlay: false` (API/planet path).\n:::\n')
+# Always start from RAW tags
+tags_raw <- read_csv_if(file.path(data_root, "raw", "changesets_tags.csv"))
+if (is.null(tags_raw) || !nrow(tags_raw)) {
+  det <- read_csv_if(file.path(data_root, "raw", "changesets_details.csv"))
+  tags_raw <- if (!is.null(det) && nrow(det)) {
+    OSMdashboard::extract_and_combine_tags(det)
+  } else {
+    tibble::tibble(changeset=integer(), key=character(), value=character())
+  }
+}
+
+# If overlay is being used, restrict RAW tags to the selected changeset IDs
+if (exists("changesets") && "id" %in% names(changesets)) {
+  sel_ids <- unique(na.omit(as.integer(changesets$id)))
+  tags_raw <- dplyr::filter(tags_raw, .data$changeset %in% sel_ids)
+}
+
+if (!nrow(tags_raw)) {
+  cat("No feature tags available for the selected changesets.")
 } else {
-  #Non-db-overlay option
-  key_counts2 <- changesets_tags  |>
-    count(key, sort = TRUE) |> 
-    categorise_keys() |> 
-    count(top_key, parent_key, wt = n) |> 
-    mutate(parent_key = replace_na(parent_key, "other"),
-           top_key = replace_na(top_key, "other"),
-           top_key = fct_infreq(as.factor(top_key))) 
-  
-  
-  tags_treemap <- ggplot(key_counts2, aes(area = n, fill = top_key, 
-                          subgroup = top_key,
-                          label = parent_key)) +
-    geom_treemap(color = "white") +
-    geom_treemap_subgroup_border(color = "white") +
-    geom_treemap_text(fontface = "italic", colour = "white", alpha = 0.5,
-                      place = "centre",
-                      grow = TRUE) +
-    geom_treemap_subgroup_text(place = "bottom", grow = T, alpha = 1, colour =
-                                 "#333333", fontface = "italic", min.size = 0) +
+  key_counts2 <- tags_raw |>
+    dplyr::filter(!is.na(key), nzchar(key)) |>
+    dplyr::count(key, sort = TRUE) |>
+    categorise_keys() |>
+    dplyr::count(top_key, parent_key, wt = n, name = "n") |>
+    dplyr::mutate(
+      parent_key = tidyr::replace_na(parent_key, "other"),
+      top_key    = tidyr::replace_na(top_key, "other"),
+      top_key    = forcats::fct_infreq(as.factor(top_key))
+    )
+
+  ggplot(key_counts2, aes(area = n, fill = top_key,
+                          subgroup = top_key, label = parent_key)) +
+    treemapify::geom_treemap(color = "white") +
+    treemapify::geom_treemap_subgroup_border(color = "white") +
+    treemapify::geom_treemap_text(fontface = "italic", colour = "white",
+                                  alpha = 0.5, place = "centre", grow = TRUE) +
+    treemapify::geom_treemap_subgroup_text(place = "bottom", grow = TRUE, alpha = 1,
+                                           colour = "#333333", fontface = "italic", min.size = 0) +
     labs(fill = "") +
     scale_fill_brewer(palette = "Paired", type = "qual", direction = 1) +
-    # TODO: sort sorting for scale fill. Now based on factor's levels.
-    theme(legend.position="none")
-  
-  tags_treemap
+    theme(legend.position = "none")
 }
 
 ```
@@ -1084,128 +1175,255 @@ if (use_db) {
 ```{r}
 #| title: "Sources of information"
 
+read_csv_if <- function(p) if (file.exists(p)) readr::read_csv(p, show_col_types = FALSE) else NULL
+
+overlay_path <- file.path(data_root, "db_overlay", "changesets_subset.csv")
+
+if (file.exists(overlay_path)) {
+  overlay_cs <- read_csv_if(overlay_path)
+  
+  if (!is.null(overlay_cs) && "id" %in% names(overlay_cs)) {
+    
+    # 1. Select and process overlay data
+    overlay_src <- overlay_cs |> 
+      dplyr::select(id, 
+                    imagery_used_ov = dplyr::any_of("imagery_used"), 
+                    source_ov = dplyr::any_of("source"),
+                    comment_ov = dplyr::any_of("comment")) |>
+      dplyr::mutate(id = as.integer(id)) |>
+      
+      # Extract "source=..." from the comment
+      dplyr::mutate(
+        comment_source = stringr::str_remove(
+          stringr::str_extract(comment_ov, "(?i)source\\s*=\\s*[^,;\\s]+"), 
+          "(?i)source\\s*=\\s*") # Removes 'source=' to isolate the value
+      ) |>
+      # Coalesce the three possible sources into one temporary column
+      dplyr::mutate(
+        source_final = dplyr::coalesce(imagery_used_ov, source_ov, comment_source)
+      ) |>
+      dplyr::select(id, source_ov = source_final) 
+      
+    # 2. Join the final source into the changesets table 
+    changesets <- changesets |>
+      dplyr::left_join(overlay_src, by = "id") |>
+      
+      # 3. Coalesce into the main 'source' column
+      dplyr::mutate(
+        source = as.character(source),
+        source = dplyr::coalesce(source, source_ov)
+      ) |>
+      dplyr::select(-dplyr::ends_with("_ov")) 
+  }
+}
+
+
 df <- changesets |>
-  dplyr::transmute(
-    # force both to character and treat "" as NA
-    source = dplyr::na_if(as.character(source), ""),
-    imagery_used = dplyr::na_if(as.character(imagery_used), "")
-  ) |>
-  dplyr::mutate(source = dplyr::coalesce(source, imagery_used)) |>
-  dplyr::filter(!is.na(source), nzchar(source)) |>
-  # split multi-valued sources like "Bing;Maxar"
-  tidyr::separate_rows(source, sep = ";") |>
+  # 1. Select relevant data and create the single, best source column (final_source)
+  dplyr::select(id, 
+                source_raw = dplyr::any_of("source"), 
+                imagery_used_raw = dplyr::any_of("imagery_used")) |>
+  
   dplyr::mutate(
-    source = stringr::str_trim(source),
-    source = stringr::str_replace_all(source, "\\+", " "),
-    source = dplyr::case_when(
-      stringr::str_to_lower(source) == "survey" ~ "Survey",
-      stringr::str_detect(stringr::str_to_lower(source), "mapillary") ~ "Mapillary",
-      stringr::str_detect(stringr::str_to_lower(source), "esri") ~ "Esri World Imagery",
-      stringr::str_detect(source, "Bing") ~ "Bing Maps Aerial",
-      stringr::str_detect(source, "PNOA") ~ "PNOA Spain",
-      stringr::str_detect(source, "Maxar") ~ "Maxar Premium Imagery",
-      stringr::str_detect(source, "Catastro") ~ "Catastro Spain",
-      stringr::str_detect(source, "Strava") ~ "Strava Heat Map",
-      TRUE ~ source
+    source_raw       = as.character(source_raw),
+    imagery_used_raw = as.character(imagery_used_raw)
+  ) |> 
+
+  dplyr::mutate(
+    source_raw       = as.character(dplyr::na_if(source_raw, "")),
+    imagery_used_raw = as.character(dplyr::na_if(imagery_used_raw, "")),
+    final_source     = dplyr::coalesce(imagery_used_raw, source_raw)
+  )
+
+df <- df |>
+  # Filter out empty rows
+  dplyr::filter(!is.na(final_source), nzchar(final_source))
+  
+df <- df |> 
+  # Separate by separator
+  tidyr::separate_rows(final_source, sep = "[;,]")
+
+df <- df |>
+  # Clean, Categorize, and Create Parent
+  dplyr::mutate(
+    # 1. Clean up and standardize the source
+    source_clean = stringr::str_trim(final_source),
+    source_clean = stringr::str_replace_all(source_clean, "\\+", " "),
+    source_clean = dplyr::case_when(
+      stringr::str_to_lower(source_clean) == "survey"                       ~ "Survey",
+      stringr::str_detect(stringr::str_to_lower(source_clean), "mapillary") ~ "Mapillary",
+      stringr::str_detect(stringr::str_to_lower(source_clean), "esri")      ~ "Esri World Imagery",
+      stringr::str_detect(source_clean, "Bing")                             ~ "Bing Maps Aerial",
+      stringr::str_detect(source_clean, "PNOA")                             ~ "PNOA Spain",
+      stringr::str_detect(source_clean, "Maxar")                            ~ "Maxar Premium Imagery",
+      stringr::str_detect(source_clean, "Catastro")                         ~ "Catastro Spain",
+      stringr::str_detect(source_clean, "Strava")                           ~ "Strava Heat Map",
+      TRUE ~ source_clean
     ),
+    
+    # 2CREATE THE 'parent' COLUMN 
     parent = dplyr::case_when(
-      stringr::str_detect(source, "Bing|Esri|Maxar|PNOA") ~ "Satellite Imagery",
-      stringr::str_detect(stringr::str_to_lower(source), "imagery|copernicus") ~ "Satellite Imagery",
+      stringr::str_detect(source_clean, "Bing|Esri|Maxar|PNOA")                      ~ "Satellite Imagery",
+      stringr::str_detect(stringr::str_to_lower(source_clean), "imagery|copernicus") ~ "Satellite Imagery",
       TRUE ~ NA_character_
     )
   ) |>
+  # 3. Finalize column names and count
+  dplyr::rename(source = source_clean) |> 
+  dplyr::select(id, source, parent) |> # Final clean selection
+  
   dplyr::mutate(source = forcats::fct_lump_n(as.factor(source), 10)) |>
   dplyr::count(source, parent, sort = TRUE)
 
-plotly::plot_ly(df, type = "sunburst",
-                labels = ~source, values = ~n, parents = ~parent)
-
-
+if (!nrow(df)) {
+  cat("No source/imagery information recorded in the selected changesets.")
+} else {
+  
+  df <- tibble::as_tibble(df)
+  df$source <- as.character(df$source)
+  
+  df$parent <- as.character(df$parent)
+  df$parent[is.na(df$parent)] <- "Other Sources"
+  root_row <- data.frame(source = "All Sources", parent = "", n = sum(df$n))
+  df <- dplyr::bind_rows(root_row, df)
+  
+  pie_data <- df |> 
+    dplyr::filter(source != "All Sources") |>
+    dplyr::mutate(parent = "All Sources")
+  
+  # Add the root node back in
+  pie_data <- dplyr::bind_rows(data.frame(source = "All Sources", parent = "", n = sum(pie_data$n)), pie_data)
+  
+  
+  # 4. Plot the final data with forced dimensions.
+  plotly::plot_ly(pie_data,
+                  type = "sunburst",
+                  ids = ~source,
+                  labels = ~source,
+                  parents = ~parent,
+                  values = ~n,
+                  branchvalues = 'total',
+                  # CRITICAL FIX: Force dimensions to ensure visibility
+                  width = 600, 
+                  height = 600) |>
+  plotly::layout(title = "Sources of Information")
+}
 ```
 
 
 ```{r}
 #| title: "Software used"
 
-changesets |> 
-  select(created_by) |> 
-  rename(software = created_by) |> 
-  mutate(software_clean = case_when(
-    str_detect(software, "iD ") ~ "iD",
-    str_detect(software, "JOSM") ~ "JOSM",
-    str_detect(software, "maps.me") ~ "maps.me",
-    str_detect(software, "MapComplete") ~ "MapComplete",
-    str_detect(software, "Organic Maps") ~ "Organic Maps",
-    str_detect(software, "RapiD") ~ "RapiD",
-    str_detect(software, "StreetComplete") ~ "StreetComplete",
-    str_detect(software, "Vespucci") ~ "Vespucci",
-    .default = "Other"
-  )) |> 
-  count(software_clean, sort = TRUE) |> 
-  mutate(software_clean = fct_reorder(software_clean, n)) |> 
-  plot_ly(labels = ~software_clean, values = ~n) |> 
-  add_pie(hole = 0.6)
+read_csv_if <- function(p) if (file.exists(p)) readr::read_csv(p, show_col_types = FALSE) else NULL
 
+cs_soft <- changesets
+
+# If `created_by` is missing or entirely empty in overlay, join from RAW for the selected IDs
+if (!("created_by" %in% names(cs_soft)) ||
+    all(is.na(cs_soft$created_by) | cs_soft$created_by == "")) {
+
+  raw_cs <- read_csv_if(file.path(data_root, "raw", "changesets.csv"))
+  if (!is.null(raw_cs) && nrow(raw_cs) && "id" %in% names(raw_cs)) {
+    need_ids <- unique(na.omit(as.integer(changesets$id)))
+    raw_soft <- raw_cs |>
+      dplyr::filter(.data$id %in% need_ids) |>
+      dplyr::transmute(id, created_by_raw = dplyr::na_if(as.character(.data$created_by), ""))
+
+    cs_soft <- cs_soft |>
+      dplyr::left_join(raw_soft, by = "id") |>
+      dplyr::mutate(created_by = dplyr::coalesce(.data$created_by, .data$created_by_raw)) |>
+      dplyr::select(-dplyr::ends_with("_raw"))
+  }
+}
+
+if (!("created_by" %in% names(cs_soft))) {
+  cat("No editor/software information available for the selected changesets.")
+} else {
+  cs_soft |>
+    dplyr::transmute(software = dplyr::na_if(as.character(.data$created_by), "")) |>
+    dplyr::filter(!is.na(.data$software)) |>
+    dplyr::mutate(
+      software_clean = dplyr::case_when(
+        stringr::str_detect(.data$software, "\\biD\\b")          ~ "iD",
+        stringr::str_detect(.data$software, "JOSM")              ~ "JOSM",
+        stringr::str_detect(stringr::str_to_lower(.data$software), "maps\\.me") ~ "maps.me",
+        stringr::str_detect(.data$software, "MapComplete")       ~ "MapComplete",
+        stringr::str_detect(.data$software, "Organic Maps")      ~ "Organic Maps",
+        stringr::str_detect(.data$software, "RapiD")             ~ "RapiD",
+        stringr::str_detect(.data$software, "StreetComplete")    ~ "StreetComplete",
+        stringr::str_detect(.data$software, "Vespucci")          ~ "Vespucci",
+        TRUE ~ "Other"
+      )
+    ) |>
+    dplyr::count(software_clean, sort = TRUE) |>
+    plotly::plot_ly(labels = ~software_clean, values = ~n) |>
+    plotly::add_pie(hole = 0.6)
+}
 
 ```
 
 ```{r}
 #| title: "Type of changesets"
 
-# Prefer actions from changesets_details if available; otherwise fall back,
-# and if nothing exists, show a friendly placeholder.
-if (exists("changesets_details") && "action" %in% names(changesets_details)) {
-  df_actions <- changesets_details |>
-    dplyr::count(action, sort = TRUE) |>
-    dplyr::rename(action_type = action)
-} else if ("action_type" %in% names(changesets_tags)) {
-  df_actions <- changesets_tags |>
-    dplyr::count(action_type, sort = TRUE)
+read_csv_if <- function(p) if (file.exists(p)) readr::read_csv(p, show_col_types = FALSE) else NULL
+
+raw_cst <- read_csv_if(file.path(data_root, "raw", "changesets_tags.csv"))
+
+if (is.null(raw_cst) || !nrow(raw_cst)) {
+  cat("No raw changesets_tags.csv found.")
 } else {
-  df_actions <- tibble::tibble(action_type = "(not available)", n = 1L)
+  if (exists("changesets") && "id" %in% names(changesets)) {
+    sel_ids <- unique(na.omit(as.integer(changesets$id)))
+    if ("changeset" %in% names(raw_cst)) {
+      raw_cst <- dplyr::filter(raw_cst, .data$changeset %in% sel_ids)
+    }
+  }
+  if (!"action_type" %in% names(raw_cst)) {
+    cat("No 'action_type' column in data/raw/changesets_tags.csv for the selected changesets.")
+  } else {
+    raw_cst |>
+      dplyr::filter(!is.na(.data$action_type), nzchar(.data$action_type)) |>
+      dplyr::count(action_type, sort = TRUE) |>
+      plotly::plot_ly(labels = ~action_type, values = ~n) |>
+      plotly::add_pie(hole = 0.6)
+  }
 }
 
-df_actions |>
-  plotly::plot_ly(labels = ~action_type, values = ~n) |>
-  plotly::add_pie(hole = 0.6)
 
 ```
 
 ```{r}
-#| title: Language
+#| title: "Language"
 
-get_language_counts <- function(changesets, changesets_tags) {
-  # Case 1: locale column present on changesets
-  if ("locale" %in% names(changesets) && any(!is.na(changesets$locale))) {
-    changesets |>
-      dplyr::select(locale) |>
-      tidyr::separate_wider_delim(
-        locale, delim = "-", names = c("language", "country"),
-        too_few = "align_start", cols_remove = FALSE
-      ) |>
-      dplyr::filter(!is.na(language), nzchar(language)) |>
-      dplyr::count(language, sort = TRUE)
-  # Case 2: try to recover from tags (locale/language keys)
-  } else if (exists("changesets_tags") &&
-             all(c("key","value") %in% names(changesets_tags)) &&
-             nrow(changesets_tags)) {
-    lang_by_tag <- changesets_tags |>
-      dplyr::filter(key %in% c("locale","language")) |>
-      dplyr::mutate(language = tolower(sub("-.*$", "", value))) |>
-      dplyr::filter(!is.na(language), nzchar(language)) |>
-      dplyr::count(language, sort = TRUE)
-    if (nrow(lang_by_tag)) lang_by_tag else tibble::tibble(language="(not available)", n=1L)
+read_csv_if <- function(p) if (file.exists(p)) readr::read_csv(p, show_col_types = FALSE) else NULL
+
+raw_cs <- read_csv_if(file.path(data_root, "db_overlay", "changesets_subset.csv"))
+
+if (is.null(raw_cs)) {
+  cat("No raw changesets.csv found.")
+} else {
+  # If overlay is active, keep only the selected IDs so counts match the rest of the dashboard
+  if (exists("changesets") && "id" %in% names(changesets)) {
+    sel_ids <- unique(na.omit(as.integer(changesets$id)))
+    raw_cs  <- dplyr::filter(raw_cs, .data$id %in% sel_ids)
+  }
+
+  lang_df <- raw_cs |>
+    dplyr::transmute(locale = dplyr::na_if(as.character(.data$locale), "")) |>
+    tidyr::separate(locale, into = c("language","country"),
+                    sep = "[-_]", remove = FALSE, extra = "drop", fill = "right") |>
+    dplyr::filter(!is.na(language), nzchar(language)) |>
+    dplyr::count(language, sort = TRUE) |>
+    dplyr::mutate(language = forcats::fct_reorder(language, n))
+
+  if (!nrow(lang_df)) {
+    cat("No locale information in raw changesets.")
   } else {
-    tibble::tibble(language="(not available)", n=1L)
+    plotly::plot_ly(lang_df, labels = ~language, values = ~n) |>
+      plotly::add_pie(hole = 0.6)
   }
 }
 
-lang_counts <- get_language_counts(changesets, changesets_tags)
-
-lang_counts |>
-  dplyr::mutate(language = forcats::fct_reorder(language, n)) |>
-  plotly::plot_ly(labels = ~language, values = ~n) |>
-  plotly::add_pie(hole = 0.6)
 
 ```
 

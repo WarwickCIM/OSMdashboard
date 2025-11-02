@@ -88,6 +88,18 @@ create_dashboard <- function(path) {
   if (!dir.exists(paste0(path, "/data/processed/"))) {
     dir.create(paste0(path, "/data/processed/"), recursive = TRUE)
   }
+  
+  # Ensure metadata dir exists and seed a blank group_users.csv
+  #Please note the following code may have to be windows-specific due to file-writing issues
+  meta_dir <- file.path(path, "data", "metadata")
+  dir.create(meta_dir, recursive = TRUE, showWarnings = FALSE)
+  
+  gu_path <- file.path(meta_dir, "group_users.csv")
+  if (!file.exists(gu_path)) {
+    writeLines("usernames", gu_path, sep = "\r\n", useBytes = TRUE)
+    cli::cli_alert_info("Created {gu_path}")
+  }
+  
 
   absolute_path <- paste0(getwd(), "/", path)
 

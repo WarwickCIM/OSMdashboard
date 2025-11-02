@@ -57,23 +57,62 @@ This package uses quarto, which is is already installed with RStudio and Positro
 
 ## Usage
 
+First, edit group_info.csv and group_definition.csv. The conventions to be followed when editing group_definition.csv are as follows: 
+Group_tags: semicolon/pipe/comma separated exact hashtag tokens. Accepts either with # (matches hashtag_raw) or without # (matches normalized hashtag). Examples: educategirls; #letgirlsmap
+
+Group_liketags: patterns or plain words (we’ll treat plain words as %word%) separated by ;|,. Example: women% ; %girl%
+
+Group_comment: plain words to search inside changesets.comment (case-insensitive). ;|, separated. Example: mapathon; outreach
+
+Group_likecomment: raw LIKE patterns for comments (we’ll wrap plain words with % automatically). Example: %training%
+
+Group_bbx: min_lat,min_lon,max_lat,max_lon (e.g. -2.0,29.3,1.0,32.1). Leave blank for global.
+
+Group_startdate / Group_enddate: YYYY-MM-DD.
+
+TopActive: Any integer X. This will allow you to return the X most active users.
+
+If you do not want to define a group using one of these fields, just leave the field blank.
+
 ## Usage WITHOUT database
+
+You must make a python virtual environment, as this codebase contains some python. Then use your OS-specific requirements.txt file to download necessary requirements into your python virtual environment.
+This virtual environment must be named '.venv' for the codebase to work correctly.
+You must be using Python 3.11.
+To download the necessary libraries in your python environment, run: 
+pip install pip-tools
+pip-compile requirements.in
+pip install -r requirements.txt
 
 1. Create the dashboard folder structure by calling `create_dashboard()`.
 2. Edit the `data/group_info.csv` and `data/group_users.csv` files to add your groups and users.
-3. Run `data_retrieval.R` to retrieve the data from OSM.
+3. Run `data_retrieval.R --use-db-overlay=false --sample-perc-user=0.05 --sample-max-total=500 --seed=42` to retrieve the data from OSM. You can change these hyperparameters to your liking.
 4. Render `dashboard.qmd` to generate the dashboard. Do this by running `quarto render dashboard.qmd`.
 
 ## Usage WITH database
+
+You must make a python virtual environment, as this codebase contains some python. Then use your OS-specific requirements.txt file to download necessary requirements into your python virtual environment.
+This virtual environment must be named '.venv' for the codebase to work correctly.
+You must be using Python 3.11
+pip install pip-tools
+pip-compile requirements.in
+pip install -r requirements.txt
 
 In your main directory, the database must be called `osm_changesets.duckdb` and must be stored in a subdirectory named `database`.
 
 1. Create the dashboard folder structure by calling `create_dashboard()`.
 2. Edit the `data/group_info.csv` and `data/group_users.csv` files to add your groups and users.
-3. Run `data_retrieval.R` to retrieve the data from OSM.
+`data_retrieval.R --use-db-overlay=false --sample-perc-user=0.05 --sample-max-total=500 --seed=42` to retrieve the data from OSM. You can change these hyperparameters to your liking.
 4. Run `quarto render dashboard.qmd -P use_db_overlay:true`.
 
 The `use_db_overlay:true` parameter ensures that all information within the database is loaded and used in place of information from APIs in the dashboard.
+
+The hyperparameters in `data_retrieval.R --use-db-overlay=false --sample-perc-user=0.05 --sample-max-total=500 --seed=42` allow you to specify how you would like to sample API data for your users. 
+We sample API data to avoid overwhelming the APIs, for performance and politeness. Retrieving millions of individual changesets from the API is slow and puts unreasonable burden on public servers. 
+The sample works as follows: The script uses the local duckdb database to instantly determine the total number of changesets for every user in your specified group. The --sample-perc-user parameter determines the target number of changesets for each user, ensuring that heavy contributors are represented proprtionally. The --sample-max-total parameter acts like a hard limit, if the sum of all individual user targets is too high, the script proportionally scales down all user targets until the total number of sampled changesets is below this cap. The script then randomly selects the final set of changesets based on --seed (for reproducibility) and sends only those specific changeset IDs to the OSM API to retrieve the necessary detailed information (like tags, comments etc)
+The --sample-perc-user allows you to specify the maximum percentage of changesets to sample per user.
+The --sample-max-total is a global cap on the total number of changesets to retrieve across all users. Set to 0 for no cap.
+The --seed is a random seed for reproducible sampling. 
 
 Refer to the `vignette("dashboard-group-contributions")` for more details.
 
