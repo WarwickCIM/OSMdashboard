@@ -1,0 +1,7 @@
+duckdb
+numpy
+pandas
+pyarrow
+requests
+
+tzdata ; platform_system == "Windows"

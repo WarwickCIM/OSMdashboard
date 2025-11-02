@@ -1177,10 +1177,6 @@ if (!nrow(tags_raw)) {
 
 read_csv_if <- function(p) if (file.exists(p)) readr::read_csv(p, show_col_types = FALSE) else NULL
 
-# ----------------------------------------------------------------------
-# --- 1. PRIORITIZE OVERLAY DATA (Including Comment Parsing) ---
-# This block populates the main 'changesets' data frame with the best 'source' data.
-# ----------------------------------------------------------------------
 overlay_path <- file.path(data_root, "db_overlay", "changesets_subset.csv")
 
 if (file.exists(overlay_path)) {
@@ -1222,17 +1218,17 @@ if (file.exists(overlay_path)) {
 }
 
 
-# ----------------------------------------------------------------------
-# --- 2. START DIRECT PROCESSING AND PLOTTING ---
-# Rely on the 'source' column being fully populated from the overlay/comment.
-# ----------------------------------------------------------------------
 df <- changesets |>
   # 1. Select relevant data and create the single, best source column (final_source)
   dplyr::select(id, 
                 source_raw = dplyr::any_of("source"), 
                 imagery_used_raw = dplyr::any_of("imagery_used")) |>
   
-  # Coalesce imagery_used into source_raw to create a single source column
+  dplyr::mutate(
+    source_raw       = as.character(source_raw),
+    imagery_used_raw = as.character(imagery_used_raw)
+  ) |> 
+
   dplyr::mutate(
     source_raw       = as.character(dplyr::na_if(source_raw, "")),
     imagery_used_raw = as.character(dplyr::na_if(imagery_used_raw, "")),
@@ -1265,7 +1261,7 @@ df <- df |>
       TRUE ~ source_clean
     ),
     
-    # 2. CREATE THE 'parent' COLUMN 
+    # 2CREATE THE 'parent' COLUMN 
     parent = dplyr::case_when(
       stringr::str_detect(source_clean, "Bing|Esri|Maxar|PNOA")                      ~ "Satellite Imagery",
       stringr::str_detect(stringr::str_to_lower(source_clean), "imagery|copernicus") ~ "Satellite Imagery",
@@ -1371,21 +1367,17 @@ if (!("created_by" %in% names(cs_soft))) {
 
 read_csv_if <- function(p) if (file.exists(p)) readr::read_csv(p, show_col_types = FALSE) else NULL
 
-# 1) always load from RAW
 raw_cst <- read_csv_if(file.path(data_root, "raw", "changesets_tags.csv"))
 
 if (is.null(raw_cst) || !nrow(raw_cst)) {
   cat("No raw changesets_tags.csv found.")
 } else {
-  # 2) if we're using the overlay, keep only the selected IDs so it matches the rest of the dashboard
   if (exists("changesets") && "id" %in% names(changesets)) {
     sel_ids <- unique(na.omit(as.integer(changesets$id)))
     if ("changeset" %in% names(raw_cst)) {
       raw_cst <- dplyr::filter(raw_cst, .data$changeset %in% sel_ids)
     }
   }
-
-  # 3) prefer an existing 'action_type' column; otherwise bail cleanly
   if (!"action_type" %in% names(raw_cst)) {
     cat("No 'action_type' column in data/raw/changesets_tags.csv for the selected changesets.")
   } else {
@@ -1405,7 +1397,7 @@ if (is.null(raw_cst) || !nrow(raw_cst)) {
 
 read_csv_if <- function(p) if (file.exists(p)) readr::read_csv(p, show_col_types = FALSE) else NULL
 
-raw_cs <- read_csv_if(file.path(data_root, "raw", "changesets.csv"))
+raw_cs <- read_csv_if(file.path(data_root, "db_overlay", "changesets_subset.csv"))
 
 if (is.null(raw_cs)) {
   cat("No raw changesets.csv found.")

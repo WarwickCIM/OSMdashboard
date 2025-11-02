@@ -165,7 +165,7 @@ def get_changesets_for_hashtags(
           SELECT DISTINCT
             c.changeset_id, c.user, c.uid, c.created, c.comment,
             c.created_by, c.imagery_used, c.source,
-            c.min_lat, c.min_lon, c.max_lat, c.max_lon
+            c.min_lat, c.min_lon, c.max_lat, c.max_lon, c.locale
           FROM changesets c
           JOIN wanted w USING (changeset_id)
           WHERE 1=1

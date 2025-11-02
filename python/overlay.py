@@ -100,15 +100,15 @@ def build_overlay(
         .tolist()
     )
 
-    # extra usernames param
+    #extra usernames param
     param_usernames = [u.strip().lower() for u in _ensure_list(usernames) if u.strip()] if usernames else []
 
-    # decide target users
+    #decide target users
     target_users = sorted(set(csv_usernames)) if strict_group_only else sorted(set(csv_usernames) | set(param_usernames))
     if not target_users:
         raise RuntimeError("No usernames found (after normalization).")
 
-    # optionally pull start/end from group_info.csv
+    #optionally pull start/end from group_info.csv
     if use_group_info_dates and os.path.exists(group_info_csv):
         try:
             gdf = pd.read_csv(group_info_csv)
@@ -185,7 +185,7 @@ def build_overlay(
           c.created_by,
           c.imagery_used,
           c.source,
-          c.min_lat, c.min_lon, c.max_lat, c.max_lon
+          c.min_lat, c.min_lon, c.max_lat, c.max_lon, c.locale
         FROM changesets c
         {join_hashtags}
         {' '.join(where)}
